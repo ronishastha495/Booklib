@@ -3,8 +3,6 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Booklib.Models.Entities;
-
-
 public class OrderItem
 {
      [Key]
@@ -13,8 +11,8 @@ public class OrderItem
         [Required]
         public Guid OrderId { get; set; }
 
-        // [ForeignKey("OrderId")]
-        // public Order Order { get; set; }
+        [ForeignKey("OrderId")]
+        public Order Order { get; set; }
 
         [Required]
         public Guid BookId { get; set; }
