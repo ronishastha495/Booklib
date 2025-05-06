@@ -14,6 +14,8 @@ namespace Booklib.Data
 
          public DbSet<Book> Books { get; set; }
 
+         public DbSet<Bookmark> Bookmarks { get; set; }
+
         public DbSet<Announcement> Announcements { get; set; }
         public DbSet<Discount> Discounts{ get; set; }
     

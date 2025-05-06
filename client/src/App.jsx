@@ -6,6 +6,7 @@ import RegisterForm from './components/auth/RegisterForm';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 import ProtectedRoute from './components/ProtectedRoute';
+import BookAdmin from './components/admin/AdminPage';
 
 function App() {
   return (
@@ -16,7 +17,9 @@ function App() {
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegisterForm />} />
           <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/admindash" element={<BookAdmin />} />
+
           </Route>
         </Routes>
       </BrowserRouter>
