@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Booklib.Models.Entities;
@@ -6,6 +7,8 @@ using Booklib.Helpers;
 using Booklib.Data;
 using System.Security.Cryptography;
 using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace Booklib.Controllers
 {
@@ -106,7 +109,34 @@ namespace Booklib.Controllers
             });
         }
 
-        // --- Helper Methods ---
+        [HttpGet("user")]
+        [Authorize]
+        public async Task<IActionResult> GetUser()
+        {
+            var userId = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var user = await _context.User.FindAsync(Guid.Parse(userId));
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var userDto = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Role = user.Role,
+                CreatedAt = user.CreatedAt
+            };
+
+            return Ok(userDto);
+        }
 
         private string HashPassword(string password)
         {

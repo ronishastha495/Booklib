@@ -34,8 +34,9 @@ const Dashboard = () => {
       try {
         const token = authService.getToken();
         if (token) {
-          const response = await api.get('/auth/user'); // Assumed endpoint
+          const response = await api.get('/auth/user');
           setUser(response.data);
+          console.log(response.data);
         }
       } catch (error) {
         toast.error('Failed to fetch user data');
@@ -63,7 +64,7 @@ const Dashboard = () => {
           category: filters.category,
           sort
         };
-        const response = await api.get('/books', { params }); // Assumed endpoint
+        const response = await api.get('/books', { params });
         setBooks(response.data.books);
         setTotalPages(response.data.totalPages);
       } catch (error) {
@@ -78,9 +79,9 @@ const Dashboard = () => {
     const fetchUserData = async () => {
       try {
         const [cartResponse, bookmarkResponse, orderResponse] = await Promise.all([
-          api.get('/cart'), // Assumed endpoint
-          api.get('/bookmarks'), // Assumed endpoint
-          api.get('/orders') // Assumed endpoint
+          api.get('/cart'),
+          api.get('/bookmarks'),
+          api.get('/orders')
         ]);
         setCart(cartResponse.data);
         setBookmarks(bookmarkResponse.data);
@@ -99,7 +100,7 @@ const Dashboard = () => {
 
   const addToCart = async (bookId) => {
     try {
-      await api.post('/cart', { bookId }); // Assumed endpoint
+      await api.post('/cart', { bookId });
       setCart([...cart, { id: bookId }]);
       toast.success('Book added to cart');
     } catch (error) {
@@ -109,7 +110,7 @@ const Dashboard = () => {
 
   const addToBookmarks = async (bookId) => {
     try {
-      await api.post('/bookmarks', { bookId }); // Assumed endpoint
+      await api.post('/bookmarks', { bookId });
       setBookmarks([...bookmarks, { id: bookId }]);
       toast.success('Book bookmarked');
     } catch (error) {
@@ -119,7 +120,7 @@ const Dashboard = () => {
 
   const placeOrder = async () => {
     try {
-      const response = await api.post('/orders', { cart }); // Assumed endpoint
+      const response = await api.post('/orders', { cart });
       setOrders([...orders, response.data]);
       setCart([]);
       toast.success('Order placed successfully! Check your email for claim code.');
@@ -130,7 +131,7 @@ const Dashboard = () => {
 
   const cancelOrder = async (orderId) => {
     try {
-      await api.delete(`/orders/${orderId}`); // Assumed endpoint
+      await api.delete(`/orders/${orderId}`);
       setOrders(orders.filter((order) => order.id !== orderId));
       toast.success('Order cancelled');
     } catch (error) {
@@ -140,7 +141,7 @@ const Dashboard = () => {
 
   const submitReview = async (bookId) => {
     try {
-      await api.post(`/reviews/${bookId}`, review); // Assumed endpoint
+      await api.post(`/reviews/${bookId}`, review);
       setReview({ rating: 0, comment: '' });
       toast.success('Review submitted');
     } catch (error) {
@@ -181,7 +182,6 @@ const Dashboard = () => {
       </nav>
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="bg-amber-900/80 backdrop-blur-md rounded-2xl p-6 mb-6">
-          {/* Search, Filters, and Sort */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <input
               type="text"
@@ -217,7 +217,6 @@ const Dashboard = () => {
               <option value="popularity-desc">Most Popular</option>
             </select>
           </div>
-          {/* Additional Filters */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <input
               name="genre"
@@ -249,7 +248,6 @@ const Dashboard = () => {
             />
           </div>
         </div>
-        {/* Book Catalogue */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {books.map((book) => (
             <div key={book.id} className="bg-amber-800/50 rounded-lg p-4 shadow-md">
@@ -278,7 +276,6 @@ const Dashboard = () => {
             </div>
           ))}
         </div>
-        {/* Pagination */}
         <div className="flex justify-center gap-4 mb-6">
           <button
             onClick={() => handlePageChange(page - 1)}
@@ -296,7 +293,6 @@ const Dashboard = () => {
             Next
           </button>
         </div>
-        {/* Book Details Modal */}
         {selectedBook && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
             <div className="bg-amber-900/80 backdrop-blur-md rounded-2xl p-6 max-w-lg w-full mx-4">
@@ -338,7 +334,6 @@ const Dashboard = () => {
             </div>
           </div>
         )}
-        {/* Cart and Orders */}
         <div className="bg-amber-900/80 backdrop-blur-md rounded-2xl p-6">
           <h3 className="text-2xl font-serif text-amber-100 mb-4">Your Cart</h3>
           {cart.length > 0 ? (
