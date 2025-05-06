@@ -1,22 +1,27 @@
-import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import LoginForm from "./components/auth/LoginForm";
-import RegisterForm from "./components/auth/RegisterForm";
-import Dashboard from "./pages/Dashboard";
-import Home from "./pages/Home";
-import "./App.css";
-
+// App.tsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import LoginForm from './components/auth/LoginForm';
+import RegisterForm from './components/auth/RegisterForm';
+import Dashboard from './pages/Dashboard';
+import Home from './pages/Home';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/register" element={<RegisterForm />} />
-        <Route path="/login" element={<LoginForm />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<LoginForm />} />
+          <Route path="/register" element={<RegisterForm />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+      <Toaster position="top-right" richColors />
+    </>
   );
 }
 
