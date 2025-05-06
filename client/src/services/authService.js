@@ -1,66 +1,54 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5259/api/auth'; // Adjust to your backend URL
+const API_URL = 'http://localhost:5259/api/auth'; // Make sure this matches your backend URL
 
 const authService = {
   // Login function to authenticate user
-  async login(email, password) {
-    const response = await axios.post(`${API_URL}/login`, { email, password });
+  async login(email, password, role = 'Member') {
+    const response = await axios.post(`${API_URL}/login`, { 
+      email, 
+      password, 
+      role 
+    });
+    
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('refreshToken', response.data.refreshToken);
+      localStorage.setItem('userRole', response.data.role);
+      localStorage.setItem('user', JSON.stringify(response.data));
     }
-    return response.data; // Returns token, refreshToken, expiration, role
+    return response.data;
+  },
+
+  // Register function
+  async register(userData) {
+    const response = await axios.post(`${API_URL}/register`, userData);
+    return response.data;
   },
 
   // Logout function
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('user');
   },
 
-  // Get current user by calling /api/auth/user endpoint
-  async getUser() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      return null;
-    }
-    try {
-      const response = await axios.get(`${API_URL}/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data; // Returns UserDto { id, email, firstName, lastName, role, createdAt }
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      return null;
-    }
+  // Get current user from localStorage
+  getUser() {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
   },
 
   // Check if user is authenticated
   isAuthenticated() {
     const token = localStorage.getItem('token');
-    return !!token; // Returns true if token exists, false otherwise
+    return !!token;
   },
 
-  // Refresh token
-  async refreshToken() {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) {
-      return null;
-    }
-    try {
-      const response = await axios.post(`${API_URL}/refresh`, { refreshToken });
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('refreshToken', response.data.refreshToken);
-      }
-      return response.data;
-    } catch (error) {
-      console.error('Error refreshing token:', error);
-      return null;
-    }
+  // Get user role
+  getUserRole() {
+    return localStorage.getItem('userRole');
   },
 
   // Get token from localStorage

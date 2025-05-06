@@ -1,43 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React from "react";
+import { Link } from "react-router-dom";
 import { BookOpen, ShoppingCart, LogOut, Package } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, logout } = useAuth();
 
-  // Fetch user profile on mount
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
-    fetch("/api/auth/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Unauthorized");
-        return res.json();
-      })
-      .then((data) => {
-        setUser(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        localStorage.removeItem("token");
-        navigate("/login");
-      });
-  }, [navigate]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
-
-  if (loading) {
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <p className="text-gray-600 text-lg">Loading profile...</p>
@@ -73,7 +42,7 @@ const Dashboard = () => {
           </Link>
         </nav>
         <button
-          onClick={handleLogout}
+          onClick={logout}
           className="flex items-center gap-2 mt-10 px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition"
         >
           <LogOut size={18} /> Sign out

@@ -1,44 +1,31 @@
-import React, { useEffect, useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import authService from '../services/authService';
 
 const ProtectedRoute = () => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const userData = await authService.getUser();
-        setUser(userData);
-      } catch (error) {
-        console.error('Error fetching user:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUser();
-  }, []);
-
-  if (loading) {
-    return <div>Loading...</div>; // Show a loading indicator while fetching user
-  }
-
+  const location = useLocation();
+  const user = authService.getUser();
+  
   if (!user) {
+    // Redirect to login if not authenticated
     return <Navigate to="/login" replace />;
   }
-
-  if (user.role.toLowerCase() === 'admin') {
-    return <Navigate to="/bookadmin" replace />;
+  
+  // Check if user is on the correct route based on role
+  const userRole = user.role?.toLowerCase();
+  
+  // For admin users
+  if (userRole === 'admin' && !location.pathname.startsWith('/admindash')) {
+    return <Navigate to="/admindash" replace />;
   }
-
-  if (user.role.toLowerCase() === 'user' || user.role.toLowerCase() === 'member') {
-    return <Outlet />; // Render dashboard or other protected routes
+  
+  // For regular users (members)
+  if ((userRole === 'user' || userRole === 'member') && 
+      !location.pathname.startsWith('/dashboard')) {
+    return <Navigate to="/dashboard" replace />;
   }
-
-  // Fallback for unrecognized roles
-  return <Navigate to="/login" replace />;
+  
+  // If user is on the correct route, render the component
+  return <Outlet />;
 };
 
 export default ProtectedRoute;
