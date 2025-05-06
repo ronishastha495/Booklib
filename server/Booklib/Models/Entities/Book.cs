@@ -12,7 +12,7 @@ public class Book
     public string Title { get; set; } = string.Empty;
 
     [Required, MaxLength(100)]
-    public string Author { get; set; } = string.Empty; // Direct author name storage
+    public string Author { get; set; } = string.Empty;
 
     public string ImageURL { get; set; } = string.Empty;
 
@@ -30,6 +30,9 @@ public class Book
 
     [Required]
     public int YearPublished { get; set; }
+
+    [Required]
+    public DateTime PublishedDate { get; set; } // New field for precise publication date
 
     [Required]
     public string Publisher { get; set; } = string.Empty;
@@ -54,4 +57,17 @@ public class Book
 
     [Required]
     public DateTime AddedDate { get; set; } = DateTime.UtcNow;
+
+    // New fields for categories
+    [Required]
+    public bool IsBestseller { get; set; } = false;
+
+    [Required]
+    public bool IsAwardWinner { get; set; } = false;
+
+    [Required]
+    public bool IsComingSoon { get; set; } = false;
+
+    // Optional: Track sales count for bestseller calculation
+    public int SalesCount { get; set; } = 0;
 }

@@ -29,6 +29,9 @@ public class BookRequestDTO
     public int YearPublished { get; set; }
 
     [Required]
+    public DateTime PublishedDate { get; set; }
+
+    [Required]
     public string Publisher { get; set; } = string.Empty;
 
     [Required]
@@ -44,4 +47,15 @@ public class BookRequestDTO
     public bool OnSale { get; set; } = false;
     public decimal? DiscountPrice { get; set; }
     public DateTime? DiscountEndDate { get; set; }
+    public bool IsBestseller { get; set; } = false;
+    public bool IsAwardWinner { get; set; } = false;
+    public bool IsComingSoon { get; set; } = false;
+     public BookRequestDTO()
+    {
+        // Set a default value if none provided
+        if (PublishedDate == default)
+        {
+            PublishedDate = DateTime.UtcNow;
+        }
+    }
 }
