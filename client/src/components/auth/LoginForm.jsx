@@ -1,71 +1,115 @@
-import React, { useState } from "react";
-import { login } from "../../services/authService";
-import { useNavigate } from "react-router-dom";
-import  RegisterForm  from "./RegisterForm"; // Assuming RegisterForm is in the same directory
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import authService from '../../services/authService';
 
 const LoginForm = () => {
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({ 
+    email: '', 
+    password: '',
+    role: 'Member' // Default role
+  });
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     try {
-      const response = await login(formData);
-      localStorage.setItem("token", response.data.token); // store token
-      navigate("/dashboard");
-    } catch {
-      alert("Login failed. Check credentials.");
+      setIsLoading(true);
+      const response = await authService.login(formData.email, formData.password, formData.role);
+      toast.success('Logged in successfully');
+      
+      // Display role in console for debugging
+      console.log('User role:', response.role);
+      
+      // Navigate based on user role
+      if (response.role.toLowerCase() === 'admin') {
+        navigate('/admindash');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error(error.response?.data?.title || 'Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Sign In</h2>
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+        <h2 className="text-2xl font-semibold text-gray-800 text-center mb-6">Log In</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
             </label>
             <input
               id="email"
               name="email"
               type="email"
-              placeholder="Enter your email"
+              value={formData.email}
               onChange={handleChange}
               required
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-300 text-gray-900"
+              placeholder="your@email.com"
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
               Password
             </label>
             <input
               id="password"
               name="password"
               type="password"
-              placeholder="Enter your password"
+              value={formData.password}
               onChange={handleChange}
               required
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-300 text-gray-900"
+              placeholder="••••••••"
             />
+          </div>
+          <div>
+            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+              Role
+            </label>
+            <select
+              id="role"
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-300 text-gray-900"
+            >
+              <option value="Member">Member</option>
+              <option value="Admin">Admin</option>
+            </select>
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200"
+            disabled={isLoading}
+            className={`w-full py-2 px-4 rounded-md text-white font-medium transition duration-200 ${
+              isLoading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+            }`}
           >
-            Sign In
+            {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Don't have an account?{" "}
-          <a href="/register" className="text-blue-600 hover:underline">
+        <div className="mt-4 text-center text-sm text-gray-600">
+          Don't have an account?{' '}
+          <button
+            onClick={() => navigate('/register')}
+            className="text-indigo-600 hover:underline focus:outline-none"
+          >
             Sign up
-          </a>
-        </p>
+          </button>
+        </div>
       </div>
     </div>
   );

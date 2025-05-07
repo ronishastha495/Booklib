@@ -144,42 +144,55 @@ namespace Booklib.Controllers
             return Ok(MapToResponseDTO(book));
         }
 
-        // POST: Book/Create
-        [HttpPost("Create")]
-        public IActionResult CreateBook([FromBody] BookRequestDTO bookDTO)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+   [HttpPost("Create")]
+public IActionResult CreateBook([FromBody] BookRequestDTO bookDTO)
+{
+    if (!ModelState.IsValid)
+        return BadRequest(ModelState);
 
-            if (_context.Books.Any(b => b.Title == bookDTO.Title))
-                return Conflict("Book title already exists");
+    if (_context.Books.Any(b => b.Title == bookDTO.Title))
+        return Conflict("Book title already exists");
 
-            var book = new Book
-            {
-                Title = bookDTO.Title,
-                Author = bookDTO.Author,
-                ImageURL = bookDTO.ImageURL,
-                ISBN = bookDTO.ISBN,
-                Description = bookDTO.Description,
-                Genre = bookDTO.Genre,
-                Price = bookDTO.Price,
-                YearPublished = bookDTO.YearPublished,
-                Publisher = bookDTO.Publisher,
-                Language = bookDTO.Language,
-                Format = bookDTO.Format,
-                StockQuantity = bookDTO.StockQuantity,
-                IsAvailable = bookDTO.IsAvailable,
-                OnSale = bookDTO.OnSale,
-                DiscountPrice = bookDTO.DiscountPrice,
-                DiscountEndDate = bookDTO.DiscountEndDate
-            };
+    // Ensure UTC date
+    var publishedDate = bookDTO.PublishedDate;
+    if (publishedDate.Kind != DateTimeKind.Utc)
+    {
+        publishedDate = DateTime.SpecifyKind(publishedDate, DateTimeKind.Utc);
+    }
 
-            _context.Books.Add(book);
-            _context.SaveChanges();
-            
-            return CreatedAtAction(nameof(GetBook), new { id = book.BookId }, MapToResponseDTO(book));
-        }
+    var book = new Book
+    {
+        Title = bookDTO.Title,
+        Author = bookDTO.Author,
+        ImageURL = bookDTO.ImageURL,
+        ISBN = bookDTO.ISBN,
+        Description = bookDTO.Description,
+        Genre = bookDTO.Genre,
+        Price = bookDTO.Price,
+        YearPublished = bookDTO.YearPublished,
+        PublishedDate = publishedDate, // Use the converted UTC date
+        Publisher = bookDTO.Publisher,
+        Language = bookDTO.Language,
+        Format = bookDTO.Format,
+        StockQuantity = bookDTO.StockQuantity,
+        IsAvailable = bookDTO.IsAvailable,
+        OnSale = bookDTO.OnSale,
+        DiscountPrice = bookDTO.DiscountPrice,
+        DiscountEndDate = bookDTO.DiscountEndDate,
+        IsBestseller = bookDTO.IsBestseller,
+        IsAwardWinner = bookDTO.IsAwardWinner,
+        IsComingSoon = bookDTO.IsComingSoon,
+        AddedDate = DateTime.UtcNow
+    };
 
+    // Set IsComingSoon based on PublishedDate
+    book.IsComingSoon = book.PublishedDate > DateTime.UtcNow;
+
+    _context.Books.Add(book);
+    _context.SaveChanges();
+    
+    return CreatedAtAction(nameof(GetBook), new { id = book.BookId }, MapToResponseDTO(book));
+}
         // PUT: Book/Update/{id}
         [HttpPut("Update/{id}")]
         public IActionResult UpdateBook(Guid id, [FromBody] BookRequestDTO bookDTO)
@@ -193,6 +206,13 @@ namespace Booklib.Controllers
 
             if (_context.Books.Any(b => b.Title == bookDTO.Title && b.BookId != id))
                 return Conflict("Book title already exists");
+            
+                // Ensure UTC date
+    var publishedDate = bookDTO.PublishedDate;
+    if (publishedDate.Kind != DateTimeKind.Utc)
+    {
+        publishedDate = DateTime.SpecifyKind(publishedDate, DateTimeKind.Utc);
+    }
 
             // Update properties
             existingBook.Title = bookDTO.Title;
@@ -203,6 +223,7 @@ namespace Booklib.Controllers
             existingBook.Genre = bookDTO.Genre;
             existingBook.Price = bookDTO.Price;
             existingBook.YearPublished = bookDTO.YearPublished;
+            existingBook.PublishedDate = publishedDate;             
             existingBook.Publisher = bookDTO.Publisher;
             existingBook.Language = bookDTO.Language;
             existingBook.Format = bookDTO.Format;
@@ -211,9 +232,13 @@ namespace Booklib.Controllers
             existingBook.OnSale = bookDTO.OnSale;
             existingBook.DiscountPrice = bookDTO.DiscountPrice;
             existingBook.DiscountEndDate = bookDTO.DiscountEndDate;
+            existingBook.IsBestseller = bookDTO.IsBestseller;       // Add this
+    existingBook.IsAwardWinner = bookDTO.IsAwardWinner;     // Add this
+    existingBook.IsComingSoon = bookDTO.IsComingSoon;       // Add this
+
 
             _context.SaveChanges();
-            return Ok("Book updated successfully");
+            return Ok(MapToResponseDTO(existingBook));
         }
 
         // DELETE: Book/Delete/{id}
@@ -270,6 +295,87 @@ namespace Booklib.Controllers
                 : Ok(authors);
         }
 
+[HttpGet("Categories/{category}")]
+public ActionResult<ICollection<BookResponseDTO>> GetBooksByCategory(string category)
+{
+    var now = DateTime.UtcNow;
+    var threeMonthsAgo = now.AddMonths(-3);
+    var oneMonthAgo = now.AddMonths(-1);
+
+    var query = _context.Books.AsQueryable();
+
+    switch (category.ToLower())
+    {
+        case "all":
+            return GetAllBooks();
+
+        case "bestsellers":
+            query = query.Where(b => b.IsBestseller);
+            break;
+
+        case "award-winners":
+            query = query.Where(b => b.IsAwardWinner);
+            break;
+
+        case "new-releases":
+            // Changed to check PublishedDate
+            query = query.Where(b => 
+                b.PublishedDate >= threeMonthsAgo && 
+                b.PublishedDate <= now);
+            break;
+
+        case "new-arrivals":
+            query = query.Where(b => b.AddedDate >= oneMonthAgo);
+            break;
+
+        case "coming-soon":
+            // Changed to check PublishedDate
+            query = query.Where(b => b.PublishedDate > now);
+            break;
+
+        case "deals":
+            query = query.Where(b => b.OnSale && 
+                                   b.DiscountEndDate > now);
+            break;
+
+        default:
+            return BadRequest("Invalid category");
+    }
+
+    var books = query.ToList();
+    if (!books.Any())
+        return NotFound($"No books found in category: {category}");
+
+    var response = books.Select(book => MapToResponseDTO(book)).ToList();
+    return Ok(response);
+}
+
+// GET: Book/Categories
+[HttpGet("Categories")]
+public ActionResult<IDictionary<string, int>> GetCategoriesCount()
+{
+    var now = DateTime.UtcNow;
+    var threeMonthsAgo = now.AddMonths(-3);
+    var oneMonthAgo = now.AddMonths(-1);
+
+    var categoryCounts = new Dictionary<string, int>
+    {
+        ["all"] = _context.Books.Count(),
+        ["bestsellers"] = _context.Books.Count(b => b.IsBestseller),
+        ["award-winners"] = _context.Books.Count(b => b.IsAwardWinner),
+        ["new-releases"] = _context.Books.Count(b => 
+            b.YearPublished == now.Year && 
+            b.PublishedDate >= threeMonthsAgo),
+        ["new-arrivals"] = _context.Books.Count(b => 
+            b.AddedDate >= oneMonthAgo),
+        ["coming-soon"] = _context.Books.Count(b => 
+            b.PublishedDate > now),
+        ["deals"] = _context.Books.Count(b => 
+            b.OnSale && b.DiscountEndDate > now)
+    };
+
+    return Ok(categoryCounts);
+}
         // Helper method to map Book entity to BookResponseDTO
         private BookResponseDTO MapToResponseDTO(Book book)
         {
@@ -284,6 +390,7 @@ namespace Booklib.Controllers
                 Genre = book.Genre,
                 Price = book.Price,
                 YearPublished = book.YearPublished,
+                 PublishedDate = book.PublishedDate, 
                 Publisher = book.Publisher,
                 Language = book.Language,
                 Format = book.Format,
@@ -292,7 +399,11 @@ namespace Booklib.Controllers
                 OnSale = book.OnSale,
                 DiscountPrice = book.DiscountPrice,
                 DiscountEndDate = book.DiscountEndDate,
-                AddedDate = book.AddedDate
+                AddedDate = book.AddedDate,
+                 IsBestseller = book.IsBestseller,         // This was missing
+        IsAwardWinner = book.IsAwardWinner,       // This was missing
+        IsComingSoon = book.IsComingSoon,         // This was missing
+        SalesCount = book.SalesCount 
             };
         }
     }

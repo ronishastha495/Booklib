@@ -1,4 +1,3 @@
-// 3. Models/Entities/User.cs:
 using System;
 using System.ComponentModel.DataAnnotations;
 
@@ -27,7 +26,10 @@ namespace Booklib.Models.Entities
         [RegularExpression(@"^[a-zA-Z]+$", ErrorMessage = "Last name can only contain letters.")]
         public string LastName { get; set; } = null!;
 
+        // Role property - default to "Member"
+        [Required]
         public string Role { get; set; } = "Member";
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public string? RefreshToken { get; set; }
