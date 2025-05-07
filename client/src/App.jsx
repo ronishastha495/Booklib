@@ -7,8 +7,11 @@ import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 import ProtectedRoute from './components/ProtectedRoute';
 import BookAdmin from './components/admin/AdminPage';
+import BookList from './pages/BookList';
 import { useEffect, useState } from 'react';
 import authService from './services/authService';
+import ErrorBoundary from './components/ErrorBoundary';
+import { CartProvider } from './contexts/CartContext';
 
 function App() {
   const [userRole, setUserRole] = useState(null);
@@ -35,7 +38,7 @@ function App() {
 
   return (
     <>
-      <BrowserRouter>
+      <CartProvider>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginForm />} />
@@ -44,13 +47,19 @@ function App() {
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/admindash" element={<BookAdmin />} />
+            {/* Wrap your components with ErrorBoundary */}
+            <Route path="/admindash" element={
+              <ErrorBoundary>
+                <BookAdmin />
+              </ErrorBoundary>
+            } />
+            <Route path="/books" element={<BookList />} />
           </Route>
           
           {/* Fallback route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
+      </CartProvider>
       <Toaster position="top-right" richColors />
     </>
   );

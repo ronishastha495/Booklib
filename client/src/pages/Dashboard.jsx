@@ -1,15 +1,23 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { BookOpen, ShoppingCart, LogOut, Package } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  if (!user) {
+  // Removed user profile fetch due to missing backend endpoint
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-600 text-lg">Loading profile...</p>
+        <p className="text-gray-600 text-lg">Loading...</p>
       </div>
     );
   }
@@ -42,7 +50,7 @@ const Dashboard = () => {
           </Link>
         </nav>
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="flex items-center gap-2 mt-10 px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition"
         >
           <LogOut size={18} /> Sign out
@@ -52,7 +60,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="flex-1 p-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">
-          Welcome, {user.firstName}!
+          Welcome!
         </h1>
 
         <div className="bg-white rounded-lg shadow p-6 mb-8 max-w-md">
@@ -78,17 +86,17 @@ const Dashboard = () => {
           </div>
           <div className="space-y-2 text-gray-700">
             <p>
-              <span className="font-semibold">Name:</span> {user.firstName} {user.lastName}
+              <span className="font-semibold">Name:</span> N/A
             </p>
             <p>
-              <span className="font-semibold">Email:</span> {user.email}
+              <span className="font-semibold">Email:</span> N/A
             </p>
             <p>
-              <span className="font-semibold">Role:</span> {user.role}
+              <span className="font-semibold">Role:</span> N/A
             </p>
             <p>
               <span className="font-semibold">Member since:</span>{" "}
-              {new Date(user.createdAt).toLocaleDateString()}
+              N/A
             </p>
           </div>
         </div>

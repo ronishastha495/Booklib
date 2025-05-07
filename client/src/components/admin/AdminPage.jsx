@@ -5,7 +5,7 @@ import axios from 'axios';
 import DiscountManagement from './DiscountManagement';
 import AnnouncementManagement from './AnnouncementManagement';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5259/api';
 
 export default function BookAdmin() {
   const [activeTab, setActiveTab] = useState('Books');
@@ -51,11 +51,20 @@ export default function BookAdmin() {
           pageSize: 10,
         },
       });
-      setBooks(response.data.Books);
-      setTotalPages(response.data.TotalPages);
+      
+      if (response.data && response.data.Books) {
+        setBooks(response.data.Books);
+        setTotalPages(response.data.TotalPages || 1);
+      } else {
+        setBooks([]);
+        setTotalPages(1);
+        console.warn('Unexpected response format:', response.data);
+      }
     } catch (error) {
-      toast.error('Failed to fetch books');
-      console.error(error);
+      console.error('Failed to fetch books:', error);
+      toast.error('Failed to fetch books. Please ensure the API server is running.');
+      setBooks([]);
+      setTotalPages(1);
     }
   };
 
@@ -253,38 +262,46 @@ export default function BookAdmin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {books.map((book) => (
-                      <tr key={book.BookId} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm text-gray-800 font-medium">{book.Title}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{book.Author}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{book.Genre}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">Rs.{book.Price}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{book.StockQuantity}</td>
-                        <td className="px-6 py-4 text-sm">
-                          <span
-                            className={`py-1 px-3 rounded-full text-xs font-medium ${
-                              book.StockQuantity > 5
-                                ? 'bg-green-100 text-green-800'
-                                : book.StockQuantity > 0
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {book.StockQuantity > 5 ? 'In Stock' : book.StockQuantity > 0 ? 'Low Stock' : 'Out of Stock'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm">
-                          <div className="flex space-x-2">
-                            <button onClick={() => openModal(book)} className="text-blue-500 hover:text-blue-700">
-                              <Edit size={18} />
-                            </button>
-                            <button onClick={() => handleDelete(book.BookId)} className="text-red-500 hover:text-red-700">
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
+                    {books && books.length > 0 ? (
+                      books.map((book) => (
+                        <tr key={book.BookId} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-6 py-4 text-sm text-gray-800 font-medium">{book.Title}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{book.Author}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{book.Genre}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">Rs.{book.Price}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{book.StockQuantity}</td>
+                          <td className="px-6 py-4 text-sm">
+                            <span
+                              className={`py-1 px-3 rounded-full text-xs font-medium ${
+                                book.StockQuantity > 5
+                                  ? 'bg-green-100 text-green-800'
+                                  : book.StockQuantity > 0
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              {book.StockQuantity > 5 ? 'In Stock' : book.StockQuantity > 0 ? 'Low Stock' : 'Out of Stock'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            <div className="flex space-x-2">
+                              <button onClick={() => openModal(book)} className="text-blue-500 hover:text-blue-700">
+                                <Edit size={18} />
+                              </button>
+                              <button onClick={() => handleDelete(book.BookId)} className="text-red-500 hover:text-red-700">
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                          No books found
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
 

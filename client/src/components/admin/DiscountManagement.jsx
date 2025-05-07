@@ -1,283 +1,248 @@
-import { useState, useEffect } from 'react';
-import { Tag, Plus, Edit, Trash2, X } from 'lucide-react';
-import { Toaster, toast } from 'sonner';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import {
+  getAllDiscounts,
+  createDiscount,
+  updateDiscount,
+  deleteDiscount,
+} from '../../services/adminapis';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-
-export default function DiscountManagement() {
+const DiscountManagement = () => {
   const [discounts, setDiscounts] = useState([]);
-  const [books, setBooks] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDiscount, setEditingDiscount] = useState(null);
-  const [formData, setFormData] = useState({
-    BookId: '',
-    Percentage: 0,
-    StartDate: new Date().toISOString().split('T')[0],
-    EndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    IsOnSale: false,
+  const [form, setForm] = useState({
+    bookId: '',
+    percentage: '',
+    startDate: '',
+    endDate: '',
+    isOnSale: false,
   });
-
-  // Fetch discounts and books
-  useEffect(() => {
-    fetchDiscounts();
-    fetchBooks();
-  }, []);
+  const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchDiscounts = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await axios.get(`${API_BASE_URL}/Discount/GetAll`);
+      const response = await getAllDiscounts();
       setDiscounts(response.data);
-    } catch (error) {
-      toast.error('Failed to fetch discounts');
-      console.error(error);
+    } catch {
+      setError('Failed to fetch discounts');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchBooks = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/Book/GetAll`);
-      setBooks(response.data);
-    } catch (error) {
-      toast.error('Failed to fetch books');
-      console.error(error);
-    }
+  useEffect(() => {
+    fetchDiscounts();
+  }, []);
+
+  const resetForm = () => {
+    setForm({
+      bookId: '',
+      percentage: '',
+      startDate: '',
+      endDate: '',
+      isOnSale: false,
+    });
+    setEditingId(null);
   };
 
-  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
+    setForm((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
     try {
-      if (editingDiscount) {
-        await axios.put(`${API_BASE_URL}/Discount/Update/${editingDiscount.DiscountId}`, formData);
-        toast.success('Discount updated successfully');
+      if (editingId) {
+        await updateDiscount(editingId, form);
       } else {
-        await axios.post(`${API_BASE_URL}/Discount/Create`, formData);
-        toast.success('Discount created successfully');
+        await createDiscount(form);
       }
-      fetchDiscounts();
-      closeModal();
-    } catch (error) {
-      toast.error(error.response?.data?.Message || 'Operation failed');
+      await fetchDiscounts();
+      resetForm();
+    } catch {
+      setError('Failed to save discount');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Handle discount deletion
+  const handleEdit = (discount) => {
+    setForm({
+      bookId: discount.bookId || '',
+      percentage: discount.percentage || '',
+      startDate: discount.startDate ? discount.startDate.substring(0, 10) : '',
+      endDate: discount.endDate ? discount.endDate.substring(0, 10) : '',
+      isOnSale: discount.isOnSale || false,
+    });
+    setEditingId(discount.discountId);
+  };
+
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this discount?')) {
-      try {
-        await axios.delete(`${API_BASE_URL}/Discount/Delete/${id}`);
-        toast.success('Discount deleted successfully');
-        fetchDiscounts();
-      } catch (error) {
-        toast.error('Failed to delete discount');
-      }
+    if (!window.confirm('Are you sure you want to delete this discount?')) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await deleteDiscount(id);
+      await fetchDiscounts();
+    } catch {
+      setError('Failed to delete discount');
+    } finally {
+      setLoading(false);
     }
-  };
-
-  // Open modal for adding/editing
-  const openModal = (discount = null) => {
-    setEditingDiscount(discount);
-    if (discount) {
-      setFormData({
-        BookId: discount.BookId,
-        Percentage: discount.Percentage,
-        StartDate: new Date(discount.StartDate).toISOString().split('T')[0],
-        EndDate: new Date(discount.EndDate).toISOString().split('T')[0],
-        IsOnSale: discount.IsOnSale,
-      });
-    } else {
-      setFormData({
-        BookId: '',
-        Percentage: 0,
-        StartDate: new Date().toISOString().split('T')[0],
-        EndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        IsOnSale: false,
-      });
-    }
-    setIsModalOpen(true);
-  };
-
-  // Close modal
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setEditingDiscount(null);
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm">
-      <Toaster position="top-right" richColors />
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-medium text-gray-700">Manage Discounts</h2>
-        <button
-          onClick={() => openModal()}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={18} className="mr-2" />
-          Add New Discount
-        </button>
-      </div>
+    <div className="p-6 bg-white rounded shadow max-w-4xl mx-auto">
+      <h2 className="text-2xl font-semibold mb-4">Discount Management</h2>
 
-      {/* Discounts Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full">
+      {error && <p className="text-red-600 mb-4">{error}</p>}
+
+      <form onSubmit={handleSubmit} className="mb-6 space-y-4">
+        <div>
+          <label className="block font-medium mb-1" htmlFor="bookId">Book ID</label>
+          <input
+            id="bookId"
+            name="bookId"
+            type="text"
+            value={form.bookId}
+            onChange={handleInputChange}
+            required
+            className="w-full border border-gray-300 rounded px-3 py-2"
+          />
+        </div>
+
+        <div>
+          <label className="block font-medium mb-1" htmlFor="percentage">Discount Percentage</label>
+          <input
+            id="percentage"
+            name="percentage"
+            type="number"
+            min="0"
+            max="100"
+            value={form.percentage}
+            onChange={handleInputChange}
+            required
+            className="w-full border border-gray-300 rounded px-3 py-2"
+          />
+        </div>
+
+        <div className="flex space-x-4">
+          <div className="flex-1">
+            <label className="block font-medium mb-1" htmlFor="startDate">Start Date</label>
+            <input
+              id="startDate"
+              name="startDate"
+              type="date"
+              value={form.startDate}
+              onChange={handleInputChange}
+              required
+              className="w-full border border-gray-300 rounded px-3 py-2"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block font-medium mb-1" htmlFor="endDate">End Date</label>
+            <input
+              id="endDate"
+              name="endDate"
+              type="date"
+              value={form.endDate}
+              onChange={handleInputChange}
+              required
+              className="w-full border border-gray-300 rounded px-3 py-2"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="inline-flex items-center">
+            <input
+              type="checkbox"
+              name="isOnSale"
+              checked={form.isOnSale}
+              onChange={handleInputChange}
+              className="mr-2"
+            />
+            Active
+          </label>
+        </div>
+
+        <div className="flex space-x-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            {editingId ? 'Update Discount' : 'Create Discount'}
+          </button>
+          {editingId && (
+            <button
+              type="button"
+              onClick={resetForm}
+              disabled={loading}
+              className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      </form>
+
+      <h3 className="text-xl font-semibold mb-2">Discounts List</h3>
+      {loading ? (
+        <p>Loading discounts...</p>
+      ) : discounts.length === 0 ? (
+        <p>No discounts found.</p>
+      ) : (
+        <table className="w-full border border-gray-300 rounded">
           <thead>
-            <tr className="border-b border-gray-200">
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Book Title</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Percentage</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Start Date</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">End Date</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Status</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Actions</th>
+            <tr className="bg-gray-100">
+              <th className="border border-gray-300 px-2 py-1">Book ID</th>
+              <th className="border border-gray-300 px-2 py-1">Percentage</th>
+              <th className="border border-gray-300 px-2 py-1">Active</th>
+              <th className="border border-gray-300 px-2 py-1">Start Date</th>
+              <th className="border border-gray-300 px-2 py-1">End Date</th>
+              <th className="border border-gray-300 px-2 py-1">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {discounts.map((discount) => (
-              <tr key={discount.DiscountId} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm text-gray-800 font-medium">{discount.BookTitle}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">{discount.Percentage}%</td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  {new Date(discount.StartDate).toLocaleDateString()}
+            {discounts.map((d) => (
+              <tr key={d.discountId}>
+                <td className="border border-gray-300 px-2 py-1">{d.bookId}</td>
+                <td className="border border-gray-300 px-2 py-1">{d.percentage}%</td>
+                <td className="border border-gray-300 px-2 py-1 text-center">
+                  <input type="checkbox" checked={d.isOnSale} readOnly />
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  {new Date(discount.EndDate).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 text-sm">
-                  <span
-                    className={`py-1 px-3 rounded-full text-xs font-medium ${
-                      discount.IsOnSale ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}
+                <td className="border border-gray-300 px-2 py-1">{d.startDate?.substring(0, 10)}</td>
+                <td className="border border-gray-300 px-2 py-1">{d.endDate?.substring(0, 10)}</td>
+                <td className="border border-gray-300 px-2 py-1 space-x-2">
+                  <button
+                    onClick={() => handleEdit(d)}
+                    className="bg-yellow-400 px-2 py-1 rounded hover:bg-yellow-500"
                   >
-                    {discount.IsOnSale ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm">
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => openModal(discount)}
-                      className="text-blue-500 hover:text-blue-700"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(discount.DiscountId)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(d.discountId)}
+                    className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* Modal for Adding/Editing Discount */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-medium text-gray-700">
-                {editingDiscount ? 'Edit Discount' : 'Add New Discount'}
-              </h2>
-              <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">
-                <X size={24} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Book</label>
-                  <select
-                    name="BookId"
-                    value={formData.BookId}
-                    onChange={handleInputChange}
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select a book</option>
-                    {books.map((book) => (
-                      <option key={book.BookId} value={book.BookId}>
-                        {book.Title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Percentage (%)</label>
-                  <input
-                    type="number"
-                    name="Percentage"
-                    value={formData.Percentage}
-                    onChange={handleInputChange}
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    min="0"
-                    max="100"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Start Date</label>
-                  <input
-                    type="date"
-                    name="StartDate"
-                    value={formData.StartDate}
-                    onChange={handleInputChange}
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">End Date</label>
-                  <input
-                    type="date"
-                    name="EndDate"
-                    value={formData.EndDate}
-                    onChange={handleInputChange}
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="IsOnSale"
-                    checked={formData.IsOnSale}
-                    onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label className="ml-2 block text-sm font-medium text-gray-700">Is On Sale</label>
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  {editingDiscount ? 'Update Discount' : 'Add Discount'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
       )}
     </div>
   );
-}
+};
+
+export default DiscountManagement;
