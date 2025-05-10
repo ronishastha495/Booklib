@@ -1,121 +1,127 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import NavBar from '../components/common/navbar';
 
-const Home = () => {
-  const welcomeText = "Welcome to Booklib";
-  const taglineText = "Your personal library management solution";
-  const [displayedWelcome, setDisplayedWelcome] = useState("");
-  const [displayedTagline, setDisplayedTagline] = useState("");
-  const [showButtons, setShowButtons] = useState(false);
-  const [animationComplete, setAnimationComplete] = useState(false);
+const categories = [
+  'All Books',
+  'Bestsellers',
+  'Award Winners',
+  'New Releases',
+  'New Arrivals',
+  'Coming Soon',
+  'Deals',
+];
 
-  useEffect(() => {
-    const animateText = async () => {
-      // Animate welcome text
-      for (let i = 0; i <= welcomeText.length; i++) {
-        setDisplayedWelcome(welcomeText.substring(0, i));
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
+const books = [
+  {
+    id: 1,
+    title: "The Great Gatsby",
+    author: "F. Scott Fitzgerald",
+    price: 18.99,
+    image: "https://covers.openlibrary.org/b/id/7222246-L.jpg",
+    onSale: true,
+    discount: 10,
+  },
+  {
+    id: 2,
+    title: "1984",
+    author: "George Orwell",
+    price: 12.99,
+    image: "https://covers.openlibrary.org/b/id/7222161-L.jpg",
+    onSale: false,
+  },
+  {
+    id: 3,
+    title: "Pride and Prejudice",
+    author: "Jane Austen",
+    price: 14.99,
+    image: "https://covers.openlibrary.org/b/id/8226191-L.jpg",
+    onSale: true,
+    discount: 5,
+  },
+  {
+    id: 4,
+    title: "To Kill a Mockingbird",
+    author: "Harper Lee",
+    price: 16.49,
+    image: "https://covers.openlibrary.org/b/id/8225631-L.jpg",
+    onSale: false,
+  },
+];
 
-      // Wait a bit before starting tagline
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      // Animate tagline text
-      for (let i = 0; i <= taglineText.length; i++) {
-        setDisplayedTagline(taglineText.substring(0, i));
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
-
-      // Show buttons after text animation is complete
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      setShowButtons(true);
-
-      // Mark animation as complete for additional effects
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setAnimationComplete(true);
-    };
-
-    animateText();
-  }, []);
+const HomePage = () => {
+  const [selectedCategory, setSelectedCategory] = useState('All Books');
+  const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex flex-col justify-center items-center p-6 overflow-hidden relative">
-      {/* Abstract decorative elements */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-200 to-purple-200 rounded-full opacity-20 blur-xl -mr-32 -mt-32"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-teal-200 to-indigo-200 rounded-full opacity-20 blur-xl -ml-48 -mb-48"></div>
-
-      {/* Book-inspired floating elements */}
-      <div
-        className={`absolute transform ${
-          animationComplete ? "translate-y-0 opacity-40" : "translate-y-12 opacity-0"
-        } transition-all duration-1000 ease-out`}
-      >
-        <div className="w-8 h-32 bg-indigo-300 opacity-30 rotate-12 absolute -left-64 top-20"></div>
-        <div className="w-8 h-24 bg-purple-300 opacity-30 -rotate-6 absolute -right-48 top-32"></div>
-        <div className="w-8 h-40 bg-teal-300 opacity-30 rotate-3 absolute left-64 -top-12"></div>
+    <div className="bg-gray-50 min-h-screen">
+      <NavBar />
+      <header className="bg-indigo-100 text-center py-10 px-4">
+        <h2 className="text-3xl font-bold text-indigo-800 mb-2">Discover Your Next Favorite Book</h2>
+        <p className="text-gray-700 max-w-2xl mx-auto">Browse through bestsellers, new releases, exclusive editions and more!</p>
+      </header>
+      <div className="flex flex-wrap justify-center mt-6 gap-4 px-4">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-4 py-2 rounded-full font-medium text-sm transition ${
+              selectedCategory === cat
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
-
-      <div className="relative z-10 max-w-md w-full bg-white bg-opacity-70 backdrop-blur-sm p-8 border-l-4 border-indigo-500 shadow-lg rounded-md">
-        <h1 className="text-5xl font-light text-gray-900 mb-6">
-          <span className="relative">
-            {displayedWelcome}
-            <span className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 transform scale-x-100 origin-left transition-transform duration-700"></span>
-            <span className="inline-block animate-pulse ml-1">|</span>
-          </span>
-        </h1>
-
-        <p className="text-xl text-gray-600 mb-12 h-16 italic">{displayedTagline}</p>
-
-        <div
-          className={`flex flex-col space-y-4 transition-all duration-700 ${
-            showButtons ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
-        >
-          <Link
-            to="/login"
-            className="group relative px-6 py-3 text-center text-indigo-700 bg-white border-2 border-indigo-500 hover:bg-indigo-50 transition-colors duration-300 overflow-hidden rounded-md"
-          >
-            <span className="relative z-10">Login</span>
-            <span className="absolute inset-0 w-0 bg-indigo-100 transition-all duration-300 ease-out group-hover:w-full"></span>
-          </Link>
-
-          <Link
-            to="/register"
-            className="group relative px-6 py-3 text-center text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 rounded-md overflow-hidden"
-          >
-            Register
-            <span className="absolute top-0 right-0 w-12 h-full bg-white opacity-20 transform -skew-x-30 translate-x-20 group-hover:translate-x-32 transition-transform duration-700"></span>
-          </Link>
-
-          <Link
-            to="/books"
-            className="px-6 py-3 text-center text-white bg-green-600 hover:bg-green-700 transition-colors duration-300 rounded-md shadow-md hover:shadow-lg"
-          >
-            View Books
-          </Link>
-
-          <Link
-            to="/dashboard"
-            className="px-6 py-3 text-center text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-300 rounded-md shadow-md hover:shadow-lg"
-          >
-            Admin Dashboard
-          </Link>
-        </div>
+      <div className="mt-8 px-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        <input
+          type="text"
+          placeholder="Search by title, author, ISBN..."
+          className="w-full md:w-1/2 px-4 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+        />
+        <select className="px-4 py-2 border rounded shadow-sm">
+          <option>Sort By</option>
+          <option>Title</option>
+          <option>Price</option>
+          <option>Popularity</option>
+        </select>
       </div>
-
-      {/* Floating book icon */}
-      <div
-        className={`absolute bottom-12 right-12 transform transition-all duration-1000 ${
-          animationComplete ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-        }`}
-      >
-        <div className="w-16 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-r-sm rounded-b-sm relative shadow-lg">
-          <div className="absolute left-0 top-0 bottom-0 w-3 bg-white opacity-30 rounded-l-sm"></div>
-          <div className="absolute inset-2 bg-white opacity-20 rounded-r-sm rounded-b-sm"></div>
-        </div>
+      <section className="mt-10 px-4 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {books.map((book) => (
+          <div
+            key={book.id}
+            className="bg-white shadow-md rounded-lg overflow-hidden hover:shadow-xl transition cursor-pointer"
+            onClick={() => navigate(`/bookdetails/${book.id}`)}
+          >
+            <img src={book.image} alt={book.title} className="w-full h-64 object-cover" />
+            <div className="p-4">
+              <h3 className="font-semibold text-lg text-gray-800">{book.title}</h3>
+              <p className="text-sm text-gray-600">by {book.author}</p>
+              <div className="mt-2 flex items-center justify-between">
+                <p className="text-indigo-600 font-bold">
+                  ${book.onSale ? (book.price * (1 - book.discount / 100)).toFixed(2) : book.price.toFixed(2)}
+                </p>
+                {book.onSale && (
+                  <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">-{book.discount}%</span>
+                )}
+              </div>
+              <button className="mt-4 w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition">
+                Add to Cart
+              </button>
+            </div>
+          </div>
+        ))}
+      </section>
+      <div className="bg-yellow-100 mt-16 p-4 text-center text-sm text-yellow-800">
+        ⚡ New Arrivals just landed! Get exclusive editions now in-store.
       </div>
+      <footer className="mt-10 p-6 bg-white border-t text-center text-gray-600 text-sm">
+        © 2025 Library Store. All rights reserved.
+      </footer>
     </div>
   );
 };
 
-export default Home;
+export default HomePage;

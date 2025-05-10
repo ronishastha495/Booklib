@@ -41,4 +41,5 @@ public class Order
         ReadyForPickup,
         Completed,
         Cancelled
+    
     }

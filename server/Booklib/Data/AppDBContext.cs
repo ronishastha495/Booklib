@@ -41,35 +41,38 @@ namespace Booklib.Data
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // CartItem Configuration
-            modelBuilder.Entity<CartItem>(entity =>
-            {
-                entity.HasKey(e => e.CartItemId);
-                entity.HasOne(e => e.Book)
-                      .WithMany()
-                      .HasForeignKey(e => e.BookId)
-                      .OnDelete(DeleteBehavior.Restrict);
-            });
+            modelBuilder.Entity<Cart>(entity =>
+        {
+            entity.Property(e => e.RowVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+        });
 
-            // Order Configuration
-            modelBuilder.Entity<Order>(entity =>
-            {
-                entity.HasKey(e => e.OrderId);
-                entity.HasMany(e => e.Items)
-                      .WithOne()
-                      .HasForeignKey(oi => oi.OrderId)
-                      .OnDelete(DeleteBehavior.Cascade);
-            });
+        modelBuilder.Entity<CartItem>(entity =>
+                    {
+                        entity.HasKey(e => e.CartItemId);
+                        entity.HasOne(e => e.Book)
+                              .WithMany()
+                              .HasForeignKey(e => e.BookId)
+                              .OnDelete(DeleteBehavior.Restrict);
+
+                        entity.HasOne(e => e.Cart)
+                              .WithMany(c => c.Items)
+                              .HasForeignKey(e => e.CartId)
+                              .OnDelete(DeleteBehavior.Cascade);
+                    });
 
             // OrderItem Configuration
-            modelBuilder.Entity<OrderItem>(entity =>
-            {
-                entity.HasKey(e => e.OrderItemId);
-                entity.HasOne(e => e.Book)
-                      .WithMany()
-                      .HasForeignKey(e => e.BookId)
-                      .OnDelete(DeleteBehavior.Restrict);
-            });
+            // modelBuilder.Entity<OrderItem>(entity =>
+            // {
+            //     entity.HasKey(e => e.OrderItemId);
+            //     entity.HasOne(e => e.Book)
+            //           .WithMany()
+            //           .HasForeignKey(e => e.BookId)
+            //           .OnDelete(DeleteBehavior.Restrict);
+            // });
+
+
         }
     }
 }

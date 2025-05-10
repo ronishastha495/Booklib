@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Booklib.DTOs.Request;
 
- public class CartItemRequestDTO
+public class CartItemRequestDTO
     {
         [Required]
         public Guid BookId { get; set; }

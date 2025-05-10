@@ -1,16 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  getAnnouncements,
   createAnnouncement,
   updateAnnouncement,
   deleteAnnouncement,
   toggleAnnouncementActive,
-  getAnnouncementCategories,
-} from '../../services/adminapis';
+} from '../../services/announcementService';
+import { useAnnouncementContext } from '../../contexts/AnnouncementContext';
 
 const AnnouncementManagement = () => {
-  const [announcements, setAnnouncements] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const { announcements, categories, loading, error, fetchAnnouncements } = useAnnouncementContext();
   const [form, setForm] = useState({
     title: '',
     content: '',
@@ -21,35 +19,7 @@ const AnnouncementManagement = () => {
     bookId: '',
   });
   const [editingId, setEditingId] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const fetchAnnouncements = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await getAnnouncements();
-      setAnnouncements(response.data);
-    } catch {
-      setError('Failed to fetch announcements');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await getAnnouncementCategories();
-      setCategories(response.data);
-    } catch {
-      setCategories([]);
-    }
-  };
-
-  useEffect(() => {
-    fetchAnnouncements();
-    fetchCategories();
-  }, []);
+  const [formError, setFormError] = useState(null);
 
   const resetForm = () => {
     setForm({
@@ -62,6 +32,7 @@ const AnnouncementManagement = () => {
       bookId: '',
     });
     setEditingId(null);
+    setFormError(null);
   };
 
   const handleInputChange = (e) => {
@@ -74,8 +45,7 @@ const AnnouncementManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    setFormError(null);
     try {
       if (editingId) {
         await updateAnnouncement(editingId, form);
@@ -84,10 +54,8 @@ const AnnouncementManagement = () => {
       }
       await fetchAnnouncements();
       resetForm();
-    } catch {
-      setError('Failed to save announcement');
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      setFormError(err.message || 'Failed to save announcement');
     }
   };
 
@@ -95,8 +63,8 @@ const AnnouncementManagement = () => {
     setForm({
       title: announcement.title,
       content: announcement.content,
-      startDate: announcement.startDate ? announcement.startDate.substring(0, 10) : '',
-      endDate: announcement.endDate ? announcement.endDate.substring(0, 10) : '',
+      startDate: announcement.startDate ? new Date(announcement.startDate).toISOString().substring(0, 10) : '',
+      endDate: announcement.endDate ? new Date(announcement.endDate).toISOString().substring(0, 10) : '',
       isActive: announcement.isActive,
       category: announcement.category || '',
       bookId: announcement.bookId || '',
@@ -106,206 +74,236 @@ const AnnouncementManagement = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this announcement?')) return;
-    setLoading(true);
-    setError(null);
     try {
       await deleteAnnouncement(id);
       await fetchAnnouncements();
-    } catch {
-      setError('Failed to delete announcement');
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      setFormError(err.message || 'Failed to delete announcement');
     }
   };
 
   const handleToggleActive = async (id) => {
-    setLoading(true);
-    setError(null);
     try {
       await toggleAnnouncementActive(id);
       await fetchAnnouncements();
-    } catch {
-      setError('Failed to toggle active status');
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      setFormError(err.message || 'Failed to toggle active status');
     }
   };
 
   return (
-    <div className="p-6 bg-white rounded shadow max-w-4xl mx-auto">
-      <h2 className="text-2xl font-semibold mb-4">Announcement Management</h2>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">Announcement Management</h2>
 
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+        {error && <p className="text-red-500 mb-4">{error}</p>}
+        {formError && <p className="text-red-500 mb-4">{formError}</p>}
 
-      <form onSubmit={handleSubmit} className="mb-6 space-y-4">
-        <div>
-          <label className="block font-medium mb-1" htmlFor="title">Title</label>
-          <input
-            id="title"
-            name="title"
-            type="text"
-            value={form.title}
-            onChange={handleInputChange}
-            required
-            className="w-full border border-gray-300 rounded px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block font-medium mb-1" htmlFor="content">Content</label>
-          <textarea
-            id="content"
-            name="content"
-            value={form.content}
-            onChange={handleInputChange}
-            required
-            className="w-full border border-gray-300 rounded px-3 py-2"
-            rows={4}
-          />
-        </div>
-
-        <div className="flex space-x-4">
-          <div className="flex-1">
-            <label className="block font-medium mb-1" htmlFor="startDate">Start Date</label>
+        <form onSubmit={handleSubmit} className="space-y-6 mb-8">
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+              Title
+            </label>
             <input
-              id="startDate"
-              name="startDate"
-              type="date"
-              value={form.startDate}
+              id="title"
+              name="title"
+              type="text"
+              value={form.title}
               onChange={handleInputChange}
               required
-              className="w-full border border-gray-300 rounded px-3 py-2"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
-          <div className="flex-1">
-            <label className="block font-medium mb-1" htmlFor="endDate">End Date</label>
-            <input
-              id="endDate"
-              name="endDate"
-              type="date"
-              value={form.endDate}
+
+          <div>
+            <label htmlFor="content" className="block text-sm font-medium text-gray-700">
+              Content
+            </label>
+            <textarea
+              id="content"
+              name="content"
+              value={form.content}
               onChange={handleInputChange}
               required
-              className="w-full border border-gray-300 rounded px-3 py-2"
+              rows={4}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
-        </div>
 
-        <div>
-          <label className="inline-flex items-center">
-            <input
-              type="checkbox"
-              name="isActive"
-              checked={form.isActive}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
+                Start Date
+              </label>
+              <input
+                id="startDate"
+                name="startDate"
+                type="date"
+                value={form.startDate}
+                onChange={handleInputChange}
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
+                End Date
+              </label>
+              <input
+                id="endDate"
+                name="endDate"
+                type="date"
+                value={form.endDate}
+                onChange={handleInputChange}
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                name="isActive"
+                checked={form.isActive}
+                onChange={handleInputChange}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="ml-2 text-sm text-gray-700">Active</span>
+            </label>
+          </div>
+
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+              Category
+            </label>
+            <select
+              id="category"
+              name="category"
+              value={form.category}
               onChange={handleInputChange}
-              className="mr-2"
-            />
-            Active
-          </label>
-        </div>
-
-        <div>
-          <label className="block font-medium mb-1" htmlFor="category">Category</label>
-          <select
-            id="category"
-            name="category"
-            value={form.category}
-            onChange={handleInputChange}
-            className="w-full border border-gray-300 rounded px-3 py-2"
-          >
-            <option value="">Select category</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block font-medium mb-1" htmlFor="bookId">Book ID (optional)</label>
-          <input
-            id="bookId"
-            name="bookId"
-            type="text"
-            value={form.bookId}
-            onChange={handleInputChange}
-            className="w-full border border-gray-300 rounded px-3 py-2"
-            placeholder="Enter book ID if applicable"
-          />
-        </div>
-
-        <div className="flex space-x-4">
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-          >
-            {editingId ? 'Update Announcement' : 'Create Announcement'}
-          </button>
-          {editingId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              disabled={loading}
-              className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 disabled:opacity-50"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             >
-              Cancel
-            </button>
-          )}
-        </div>
-      </form>
+              <option value="">Select category</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      <h3 className="text-xl font-semibold mb-2">Announcements List</h3>
-      {loading ? (
-        <p>Loading announcements...</p>
-      ) : announcements.length === 0 ? (
-        <p>No announcements found.</p>
-      ) : (
-        <table className="w-full border border-gray-300 rounded">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border border-gray-300 px-2 py-1">Title</th>
-              <th className="border border-gray-300 px-2 py-1">Category</th>
-              <th className="border border-gray-300 px-2 py-1">Active</th>
-              <th className="border border-gray-300 px-2 py-1">Start Date</th>
-              <th className="border border-gray-300 px-2 py-1">End Date</th>
-              <th className="border border-gray-300 px-2 py-1">Book ID</th>
-              <th className="border border-gray-300 px-2 py-1">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {announcements.map((a) => (
-              <tr key={a.announcementId}>
-                <td className="border border-gray-300 px-2 py-1">{a.title}</td>
-                <td className="border border-gray-300 px-2 py-1">{a.category}</td>
-                <td className="border border-gray-300 px-2 py-1 text-center">
-                  <input
-                    type="checkbox"
-                    checked={a.isActive}
-                    onChange={() => handleToggleActive(a.announcementId)}
-                  />
-                </td>
-                <td className="border border-gray-300 px-2 py-1">{a.startDate?.substring(0, 10)}</td>
-                <td className="border border-gray-300 px-2 py-1">{a.endDate?.substring(0, 10)}</td>
-                <td className="border border-gray-300 px-2 py-1">{a.bookId}</td>
-                <td className="border border-gray-300 px-2 py-1 space-x-2">
-                  <button
-                    onClick={() => handleEdit(a)}
-                    className="bg-yellow-400 px-2 py-1 rounded hover:bg-yellow-500"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(a.announcementId)}
-                    className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+          <div>
+            <label htmlFor="bookId" className="block text-sm font-medium text-gray-700">
+              Book ID (optional)
+            </label>
+            <input
+              id="bookId"
+              name="bookId"
+              type="text"
+              value={form.bookId}
+              onChange={handleInputChange}
+              placeholder="Enter book ID if applicable"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex space-x-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {editingId ? 'Update Announcement' : 'Create Announcement'}
+            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </form>
+
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">Announcements List</h3>
+        {loading ? (
+          <p className="text-gray-600">Loading announcements...</p>
+        ) : announcements.length === 0 ? (
+          <p className="text-gray-600">No announcements found.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Title
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Category
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Active
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Start Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    End Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Book ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {announcements.map((a) => (
+                  <tr key={a.announcementId}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{a.title}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{a.category}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <input
+                        type="checkbox"
+                        checked={a.isActive}
+                        onChange={() => handleToggleActive(a.announcementId)}
+                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {a.startDate ? new Date(a.startDate).toISOString().substring(0, 10) : ''}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {a.endDate ? new Date(a.endDate).toISOString().substring(0, 10) : ''}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{a.bookId}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      <button
+                        onClick={() => handleEdit(a)}
+                        className="inline-flex items-center px-3 py-1 bg-yellow-400 text-white rounded-md hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(a.announcementId)}
+                        className="inline-flex items-center px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
