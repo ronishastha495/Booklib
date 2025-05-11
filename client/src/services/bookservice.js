@@ -1,4 +1,3 @@
-import axios from 'axios';
 import api from './api';
 
 const BookService = {
@@ -25,7 +24,7 @@ const BookService = {
   // Get book by ID
   getBookById: async (bookId) => {
     try {
-      const response = await api.get(`/Book/GetById/${bookId}`);
+   const response = await api.get(`/Book/${bookId}`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

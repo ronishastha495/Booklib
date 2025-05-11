@@ -1,93 +1,108 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
+import { toast } from 'sonner';
 
 const CartContext = createContext();
 
-export const useCart = () => useContext(CartContext);
-
 export const CartProvider = ({ children }) => {
     const [cartItems, setCartItems] = useState([]);
+    const [loading, setLoading] = useState(false);
 
+    // Fetch cart on initial load
     useEffect(() => {
-        const savedCart = localStorage.getItem('bookshopCart');
-        if (savedCart) {
-            try {
-                setCartItems(JSON.parse(savedCart));
-            } catch (error) {
-                console.error('Error loading cart from localStorage:', error);
-                setCartItems([]);
-            }
-        }
+        fetchCart();
     }, []);
 
-    useEffect(() => {
-        localStorage.setItem('bookshopCart', JSON.stringify(cartItems));
-    }, [cartItems]);
-
-    const addToCart = (book) => {
-        setCartItems(prevItems => {
-            const existingItemIndex = prevItems.findIndex(item => item.id === book.id);
-            if (existingItemIndex >= 0) {
-                const updatedItems = [...prevItems];
-                const newQuantity = prevItems[existingItemIndex].quantity + (book.quantity || 1);
-                updatedItems[existingItemIndex] = {
-                    ...prevItems[existingItemIndex],
-                    quantity: newQuantity
-                };
-                return updatedItems;
-            } else {
-                return [...prevItems, { ...book, quantity: book.quantity || 1 }];
-            }
-        });
-    };
-
-    const removeFromCart = (bookId) => {
-        setCartItems(prevItems => prevItems.filter(item => item.id !== bookId));
-    };
-
-    // Fix: This function should SET the quantity, not add/subtract
-    const updateQuantity = (bookId, quantity) => {
-        if (quantity <= 0) {
-            removeFromCart(bookId);
-            return;
+    const fetchCart = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get('/api/Cart');
+            setCartItems(response.data.items);
+        } catch (error) {
+            toast.error('Failed to fetch cart');
+        } finally {
+            setLoading(false);
         }
-        setCartItems(prevItems =>
-            prevItems.map(item =>
-                item.id === bookId ? { ...item, quantity } : item
-            )
-        );
     };
 
-    const clearCart = () => {
+    const addToCart = async (book, quantity = 1) => {
+        try {
+            setLoading(true);
+            const response = await axios.post('/api/Cart/items', {
+                bookId: book.id,
+                quantity: quantity
+            });
+            setCartItems(response.data.items);
+            toast.success('Item added to cart');
+        } catch (error) {
+            toast.error(error.response?.data || 'Failed to add item to cart');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const updateQuantity = async (bookId, quantity) => {
+        try {
+            setLoading(true);
+            const response = await axios.put(`/api/Cart/items/${bookId}/quantity`, {
+                quantity: quantity
+            });
+            setCartItems(response.data.items);
+        } catch (error) {
+            toast.error(error.response?.data || 'Failed to update quantity');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const removeFromCart = async (bookId) => {
+        try {
+            setLoading(true);
+            await axios.delete(`/api/Cart/items/${bookId}`);
+            setCartItems(prev => prev.filter(item => item.id !== bookId));
+            toast.success('Item removed from cart');
+        } catch (error) {
+            toast.error('Failed to remove item from cart');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const clearCart = async () => {
         setCartItems([]);
+        // Note: Add API endpoint for clearing cart if needed
     };
 
-    const getTotalPrice = () => {
-        return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-    };
-
-    const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const volumeDiscount = subtotal >= 2000 ? subtotal * 0.05 : 0;
+    // Calculate totals based on cart items
+    const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const volumeDiscount = cartItems.reduce((sum, item) => sum + item.quantity, 0) >= 5 ? subtotal * 0.05 : 0;
     const loyaltyDiscount = subtotal >= 3000 ? subtotal * 0.10 : 0;
     const total = subtotal - volumeDiscount - loyaltyDiscount;
 
-    const value = {
-        cartItems,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
-        getTotalPrice,
-        subtotal,
-        volumeDiscount,
-        loyaltyDiscount,
-        total
-    };
-
     return (
-        <CartContext.Provider value={value}>
+        <CartContext.Provider value={{
+            cartItems,
+            addToCart,
+            removeFromCart,
+            updateQuantity,
+            clearCart,
+            subtotal,
+            volumeDiscount,
+            loyaltyDiscount,
+            total,
+            loading
+        }}>
             {children}
         </CartContext.Provider>
     );
+};
+
+export const useCart = () => {
+    const context = useContext(CartContext);
+    if (!context) {
+        throw new Error('useCart must be used within a CartProvider');
+    }
+    return context;
 };
 
 export default CartContext;

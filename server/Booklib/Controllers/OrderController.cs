@@ -177,15 +177,15 @@ namespace Booklib.Controllers
             return discount;
         }
 
-       private Guid GetCurrentUserId()
-{
-    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
-                    ?? User.FindFirst("sub")?.Value;
-    
-    if (userIdClaim == null)
-        throw new UnauthorizedAccessException("User ID not found in token");
+        private Guid GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                            ?? User.FindFirst("sub")?.Value;
 
-    return Guid.Parse(userIdClaim);
-}
+            if (userIdClaim == null)
+                throw new UnauthorizedAccessException("User ID not found in token");
+
+            return Guid.Parse(userIdClaim);
+        }
     }
 }
