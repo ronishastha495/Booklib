@@ -31,9 +31,15 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<AppDBContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddScoped<EmailService>();
 // Add JWT service
 builder.Services.AddScoped<JwtService>();
-
+ 
+// Add authorization policies
+builder.Services.AddAuthorizationBuilder()
+                                 // Add authorization policies
+                                 .AddPolicy("StaffOnly", policy => 
+        policy.RequireRole("Staff"));
 // Configure Authentication with JWT
 builder.Services.AddAuthentication(options =>
 {

@@ -4,17 +4,17 @@ import authService from '../services/authService';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [auth, setAuth] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadUser = async () => {
       try {
         const userData = await authService.getUser();
-        setUser(userData);
+        setAuth(userData);
       } catch (error) {
         console.error('Failed to load user:', error);
-        setUser(null);
+        setAuth(null);
       } finally {
         setLoading(false);
       }
@@ -25,21 +25,21 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, role) => {
     const response = await authService.login(email, password, role);
-    setUser(await authService.getUser());
+    setAuth(await authService.getUser());
     return response;
   };
 
   const logout = () => {
     authService.logout();
-    setUser(null);
+    setAuth(null);
   };
 
   const value = {
-    user,
+    auth,
     loading,
     login,
     logout,
-    isAuthenticated: !!user,
+    isAuthenticated: !!auth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -2,29 +2,33 @@ import { useState } from 'react';
 import { 
   Library, Bell, Search, ChevronDown, Menu, LogOut
 } from 'e-react';
+import { useNavigate } from 'react-router-dom';
 import SidebarItem from '../../components/adminsidebar/SidebarItem';
 import ADashboard from './ADashbord';
 import BookList from '../BookList';
 import Catalog from './Catalog';
 import Inventory from './Inventory';
 import Member from './Members';
-import Order from './Orders';
-import DiscountManagement  from '../../components/admin/DiscountManagement';
+import DiscountManagement from '../../components/admin/DiscountManagement';
 import AnnouncementManagement from '../../components/admin/AnnouncementManagement';
-import Reports from './Reports';
 import Reviews from './Reviews';
-import Settings from './Settings';
-import { BarChart2, BookOpen, Box, FileText, ShoppingCart, Star, Tag, Users } from 'react-feather';
+import Reports from './Reports';
+import { BarChart2, BookOpen, Box, FileText, Star, Tag, Users } from 'react-feather'; // Added FileText import
 import { BookProvider } from '../../contexts/BookContext';
-import { DiscountProvider } from '../../contexts/DiscountContext'; // Added import for DiscountProvider
+import { DiscountProvider } from '../../contexts/DiscountContext';
 import { AnnouncementProvider } from '../../contexts/AnnouncementContext';
 
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const navigate = useNavigate();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  const handleLogout = () => {
+    navigate('/login');
   };
 
   return (
@@ -64,13 +68,6 @@ const AdminDashboard = () => {
               collapsed={!sidebarOpen} 
             />
             <SidebarItem 
-              icon={<ShoppingCart />} 
-              text="Orders" 
-              active={activeTab === 'orders'} 
-              onClick={() => setActiveTab('orders')} 
-              collapsed={!sidebarOpen} 
-            />
-            <SidebarItem 
               icon={<Users />} 
               text="Members" 
               active={activeTab === 'members'} 
@@ -98,20 +95,6 @@ const AdminDashboard = () => {
               onClick={() => setActiveTab('reviews')} 
               collapsed={!sidebarOpen} 
             />
-            <SidebarItem 
-              icon={<FileText />} 
-              text="Reports" 
-              active={activeTab === 'reports'} 
-              onClick={() => setActiveTab('reports')} 
-              collapsed={!sidebarOpen} 
-            />
-            <SidebarItem 
-              icon={<Settings />} 
-              text="Settings" 
-              active={activeTab === 'settings'} 
-              onClick={() => setActiveTab('settings')} 
-              collapsed={!sidebarOpen} 
-            />
           </nav>
         </div>
         <div className="p-4 border-t border-stone-700">
@@ -119,14 +102,13 @@ const AdminDashboard = () => {
             icon={<LogOut />} 
             text="Log Out" 
             active={false} 
-            onClick={() => {}} 
+            onClick={handleLogout}
             collapsed={!sidebarOpen} 
           />
         </div>
       </div>
 
       {/* Main Content */}
-      {/* Added DiscountProvider to wrap the main content, ensuring DiscountManagement has access to DiscountContext */}
       <DiscountProvider>
         <BookProvider>
           <AnnouncementProvider>
@@ -142,13 +124,10 @@ const AdminDashboard = () => {
                       {activeTab === 'dashboard' && 'Dashboard'}
                       {activeTab === 'catalog' && 'Book Catalog'}
                       {activeTab === 'inventory' && 'Inventory Management'}
-                      {activeTab === 'orders' && 'Orders'}
                       {activeTab === 'members' && 'Members'}
                       {activeTab === 'discounts' && 'Discounts & Promotions'}
                       {activeTab === 'announcements' && 'Announcements'}
                       {activeTab === 'reviews' && 'Book Reviews'}
-                      {activeTab === 'reports' && 'Reports'}
-                      {activeTab === 'settings' && 'Settings'}
                     </h1>
                   </div>
                   <div className="flex items-center gap-3">
@@ -182,13 +161,10 @@ const AdminDashboard = () => {
                 {activeTab === 'dashboard' && <ADashboard />}
                 {activeTab === 'catalog' && <Catalog />}
                 {activeTab === 'inventory' && <Inventory />}
-                {activeTab === 'orders' && <Order />}
                 {activeTab === 'members' && <Member />}
                 {activeTab === 'discounts' && <DiscountManagement />}
                 {activeTab === 'announcements' && <AnnouncementManagement />}
                 {activeTab === 'reviews' && <Reviews />}
-                {activeTab === 'reports' && <Reports />}
-                {activeTab === 'settings' && <Settings />}
               </main>
             </div>
           </AnnouncementProvider>

@@ -25,20 +25,21 @@ const Dashboard = () => {
         // Fetch books data
         const books = await BookService.getAllBooks();
         // Update stats and recentBooks based on fetched books
-        setStats((prevStats) =>
-          prevStats.map((stat) => {
+        setStats((prevStats) => {
+          const totalBooks = books.length;
+          return prevStats.map((stat) => {
             if (stat.title === 'Total Books') {
-              return { ...stat, value: books.length.toString(), trend: '+14% from last month' };
+              return { ...stat, value: totalBooks.toString(), trend: '+14% from last month' };
             }
             return stat;
-          })
-        );
+          });
+        });
         setRecentBooks(
           books.slice(0, 5).map((book) => ({
             id: book.id,
             title: book.title,
             author: book.author,
-            cover: book.coverImageUrl || '/placeholder-70x100.png',
+cover: book.coverImageUrl || '/placeholder-70x100.png',
             stock: book.stock || 0,
             price: `$${book.price?.toFixed(2) || '0.00'}`,
             status: book.stock > 10 ? 'In Stock' : book.stock > 0 ? 'Low Stock' : 'Out of Stock',

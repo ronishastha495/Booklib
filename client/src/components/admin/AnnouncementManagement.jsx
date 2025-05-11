@@ -18,17 +18,14 @@ const AnnouncementManagement = () => {
     endDate: '',
     isActive: false,
     category: '',
-    bookId: '',
   });
   const [editingId, setEditingId] = useState(null);
   const [formError, setFormError] = useState(null);
-  const [category, setCategory] = useState(''); // State to hold the selected category
+  const [category, setCategory] = useState('');
 
-  // Combine default categories with categories from context, ensuring no duplicates
   const allCategories = Array.from(new Set([...defaultCategories, ...contextCategories]));
 
   useEffect(() => {
-    // When editing, if the announcement has a category, set it in the local state
     if (editingId && announcements.length > 0) {
       const announcementToEdit = announcements.find(a => a.announcementId === editingId);
       if (announcementToEdit && announcementToEdit.category) {
@@ -36,7 +33,6 @@ const AnnouncementManagement = () => {
         setForm(prev => ({ ...prev, category: announcementToEdit.category }));
       }
     } else if (!editingId) {
-      // Reset the selected category when not editing
       setCategory('');
       setForm(prev => ({ ...prev, category: '' }));
     }
@@ -50,11 +46,10 @@ const AnnouncementManagement = () => {
       endDate: '',
       isActive: false,
       category: '',
-      bookId: '',
     });
     setEditingId(null);
     setFormError(null);
-    setCategory(''); // Reset the selected category
+    setCategory('');
   };
 
   const handleInputChange = (e) => {
@@ -77,19 +72,15 @@ const AnnouncementManagement = () => {
     e.preventDefault();
     setFormError(null);
     try {
-      const categoryToUse = category || defaultCategories[0]; // Use the selected category or the first default one
-
-      // Validate required fields
+      const categoryToUse = category || defaultCategories[0];
       if (!form.title || !form.content || !form.startDate || !form.endDate || !categoryToUse) {
         setFormError('Please fill in all required fields.');
         return;
       }
 
-      // Convert dates to ISO 8601 datetime strings with time at start of day UTC
       const startDateISO = new Date(form.startDate).toISOString();
       const endDateISO = new Date(form.endDate).toISOString();
 
-      // Prepare formData without announcementId for create
       const formData = {
         title: form.title,
         content: form.content,
@@ -97,16 +88,7 @@ const AnnouncementManagement = () => {
         endDate: endDateISO,
         isActive: form.isActive,
         category: categoryToUse,
-        bookId: form.bookId && form.bookId.trim() !== '' ? form.bookId : null,
       };
-
-      // Validate bookId as GUID format, else set to null
-      const guidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-      if (formData.bookId && !guidRegex.test(formData.bookId)) {
-        formData.bookId = null;
-      }
-
-      console.log('Submitting announcement:', formData);
 
       if (editingId) {
         await updateAnnouncement(editingId, formData);
@@ -117,7 +99,6 @@ const AnnouncementManagement = () => {
       resetForm();
     } catch (err) {
       console.error('Error saving announcement:', err);
-      // Handle detailed validation errors from backend
       if (err && err.errors) {
         const errorMessages = Object.entries(err.errors)
           .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
@@ -137,7 +118,6 @@ const AnnouncementManagement = () => {
       endDate: announcement.endDate ? new Date(announcement.endDate).toISOString().substring(0, 10) : '',
       isActive: announcement.isActive || false,
       category: announcement.category || '',
-      bookId: announcement.bookId || '',
     });
     setCategory(announcement.category || '');
     setEditingId(announcement.announcementId);
@@ -266,21 +246,6 @@ const AnnouncementManagement = () => {
             </select>
           </div>
 
-          <div>
-            <label htmlFor="bookId" className="block text-sm font-medium text-gray-700">
-              Book ID (optional)
-            </label>
-            <input
-              id="bookId"
-              name="bookId"
-              type="text"
-              value={form.bookId}
-              onChange={handleInputChange}
-              placeholder="Enter book ID if applicable"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            />
-          </div>
-
           <div className="flex space-x-4">
             <button
               type="submit"
@@ -328,9 +293,6 @@ const AnnouncementManagement = () => {
                     End Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Book ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -354,7 +316,6 @@ const AnnouncementManagement = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {a.endDate ? new Date(a.endDate).toISOString().substring(0, 10) : ''}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{a.bookId}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button
                         onClick={() => handleEdit(a)}
