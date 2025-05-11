@@ -16,7 +16,8 @@ import BookList from './pages/BookList';
 import BookForm from './components/admin/AddBookForm'
 import Cart from './pages/Cart';
 import Catalog from './pages/admin/Catalog';
-import { Car } from 'e-react';
+import { FaCar } from "react-icons/fa";
+
 
 function App() {
   const [userRole, setUserRole] = useState(null);
