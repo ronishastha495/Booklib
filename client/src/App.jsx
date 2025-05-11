@@ -17,6 +17,7 @@ import BookForm from './components/admin/AddBookForm'
 import Cart from './pages/Cart';
 import Catalog from './pages/admin/Catalog';
 import { Car } from 'e-react';
+import StaffDashboard from './pages/staff/StaffDash';
 
 function App() {
   const [userRole, setUserRole] = useState(null);
@@ -53,8 +54,7 @@ function App() {
           <Route path="/booklist" element={<BookList />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/catalog" element={<Catalog />} />
-
-
+          <Route path="/staffdash" element={<StaffDashboard />} />
 
           {/* <Route path="/admin" element={<AdminDashboard />} /> */}
           
