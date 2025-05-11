@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Eye, Edit, Trash2, Percent, Search, Save, X } from 'react-feather';
+import { Toaster } from 'sonner';
 import { useBookContext } from '../../contexts/BookContext';
 import AddBookForm from '../../components/admin/AddBookForm';
 
@@ -26,16 +27,18 @@ const Catalog = () => {
     isbn: '',
     genre: '',
     publisher: '',
-    publicationDate: '',
+    publishedDate: '',
     language: '',
     format: '',
     price: '',
-    stock: 0,
-    featured: false,
-    discount: false,
+    stockQuantity: 0,
+    isBestseller: false,
+    isAwardWinner: false,
+    isComingSoon: false,
+    onSale: false,
     description: '',
   });
-  const [editingId, setEditingId] = useState(null);
+  const [editingBookId, setEditingBookId] = useState(null);
   const [editBookData, setEditBookData] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -86,13 +89,15 @@ const Catalog = () => {
         isbn: '',
         genre: '',
         publisher: '',
-        publicationDate: '',
+        publishedDate: '',
         language: '',
         format: '',
         price: '',
-        stock: 0,
-        featured: false,
-        discount: false,
+        stockQuantity: 0,
+        isBestseller: false,
+        isAwardWinner: false,
+        isComingSoon: false,
+        onSale: false,
         description: '',
       });
       setIsAddModalOpen(false);
@@ -105,12 +110,12 @@ const Catalog = () => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (!editingId) {
-        alert('Invalid book id for update.');
+      if (!editingBookId) {
+        alert('Invalid book ID for update.');
         return;
       }
-      await updateBook(editingId, editBookData);
-      setEditingId(null);
+      await updateBook(editingBookId, editBookData);
+      setEditingBookId(null);
       setEditBookData(null);
     } catch (err) {
       console.error('Error updating book:', err);
@@ -119,39 +124,41 @@ const Catalog = () => {
 
   // Start editing a book
   const startEditing = (book) => {
-    setEditingId(book.id);
+    setEditingBookId(book.bookId);
     setEditBookData({
       title: book.title || '',
       author: book.author || '',
       isbn: book.isbn || '',
       genre: book.genre || '',
       publisher: book.publisher || '',
-      publicationDate: book.publicationDate || '',
+      publishedDate: book.publishedDate ? new Date(book.publishedDate).toISOString().split('T')[0] : '',
       language: book.language || '',
       format: book.format || '',
       price: book.price !== undefined && book.price !== null ? book.price : '',
-      stock: book.stock !== undefined && book.stock !== null ? book.stock : 0,
-      featured: book.featured || false,
-      discount: book.discount || false,
+      stockQuantity: book.stockQuantity !== undefined && book.stockQuantity !== null ? book.stockQuantity : 0,
+      isBestseller: book.isBestseller || false,
+      isAwardWinner: book.isAwardWinner || false,
+      isComingSoon: book.isComingSoon || false,
+      onSale: book.onSale || false,
       description: book.description || '',
     });
   };
 
   // Cancel editing
   const cancelEditing = () => {
-    setEditingId(null);
+    setEditingBookId(null);
     setEditBookData(null);
   };
 
   // Handle delete with confirmation
-  const handleDelete = async (id) => {
-    if (!id) {
-      alert('Invalid book id for delete.');
+  const handleDelete = async (bookId) => {
+    if (!bookId) {
+      alert('Invalid book ID for delete.');
       return;
     }
     if (window.confirm('Are you sure you want to delete this book?')) {
       try {
-        await deleteBook(id);
+        await deleteBook(bookId);
       } catch (err) {
         console.error('Error deleting book:', err);
       }
@@ -165,6 +172,7 @@ const Catalog = () => {
 
   return (
     <div className="space-y-6">
+      <Toaster position="top-right" richColors />
       <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
           <h3 className="text-lg font-semibold text-stone-800">Book Catalog</h3>
@@ -207,6 +215,7 @@ const Catalog = () => {
           <table className="min-w-full">
             <thead>
               <tr className="bg-stone-50 border-y border-stone-200">
+                <th className="text-left py-3 px-4 text-stone-500 font-medium">ID</th>
                 <th className="text-left py-3 px-4 text-stone-500 font-medium">Title</th>
                 <th className="text-left py-3 px-4 text-stone-500 font-medium">Author</th>
                 <th className="text-left py-3 px-4 text-stone-500 font-medium">ISBN</th>
@@ -220,9 +229,9 @@ const Catalog = () => {
             </thead>
             <tbody>
               {displayedBooks.map((book, index) => (
-                <tr key={book.id || index} className={`border-b border-stone-100 ${editingId === book.id ? 'bg-amber-50' : 'hover:bg-stone-50'}`}>
-                  {editingId === book.id ? (
-                    <td colSpan="9" className="py-4 px-4">
+                <tr key={book.bookId || index} className={`border-b border-stone-100 ${editingBookId === book.bookId ? 'bg-amber-50' : 'hover:bg-stone-50'}`}>
+                  {editingBookId === book.bookId ? (
+                    <td colSpan="10" className="py-4 px-4">
                       <form onSubmit={handleEditSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                           <label className="block text-stone-700 text-sm font-medium mb-1">Title*</label>
@@ -293,10 +302,10 @@ const Catalog = () => {
                           <label className="block text-stone-700 text-sm font-medium mb-1">Stock*</label>
                           <input
                             type="number"
-                            name="stock"
+                            name="stockQuantity"
                             min="0"
                             className="w-full px-3 py-2 rounded-md border border-stone-300 text-sm"
-                            value={editBookData.stock}
+                            value={editBookData.stockQuantity}
                             onChange={handleEditInputChange}
                             required
                           />
@@ -323,24 +332,25 @@ const Catalog = () => {
                     </td>
                   ) : (
                     <>
+                      <td className="py-3 px-4 font-medium text-stone-800">{index + 1}</td>
                       <td className="py-3 px-4 font-medium text-stone-800">{book.title}</td>
                       <td className="py-3 px-4 text-stone-600">{book.author}</td>
                       <td className="py-3 px-4 text-stone-600">{book.isbn}</td>
                       <td className="py-3 px-4 text-stone-600">{book.genre}</td>
                       <td className="py-3 px-4 text-stone-600">{book.format}</td>
-                      <td className="py-3 px-4 text-stone-600">{book.stock}</td>
+                      <td className="py-3 px-4 text-stone-600">{book.stockQuantity}</td>
                       <td className="py-3 px-4 text-stone-600">${book.price}</td>
                       <td className="py-3 px-4">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            book.stock > 10
+                            book.stockQuantity > 10
                               ? 'bg-green-100 text-green-800'
-                              : book.stock > 0
+                              : book.stockQuantity > 0
                               ? 'bg-yellow-100 text-yellow-800'
                               : 'bg-red-100 text-red-800'
                           }`}
                         >
-                          {book.stock > 10 ? 'In Stock' : book.stock > 0 ? 'Low Stock' : 'Out of Stock'}
+                          {book.stockQuantity > 10 ? 'In Stock' : book.stockQuantity > 0 ? 'Low Stock' : 'Out of Stock'}
                         </span>
                       </td>
                       <td className="py-3 px-4">
@@ -356,7 +366,7 @@ const Catalog = () => {
                           </button>
                           <button
                             className="p-1 rounded-md hover:bg-stone-100"
-                            onClick={() => handleDelete(book.id)}
+                            onClick={() => handleDelete(book.bookId)}
                           >
                             <Trash2 className="h-5 w-5 text-red-500" />
                           </button>
@@ -376,12 +386,14 @@ const Catalog = () => {
           </p>
           <div className="flex items-center gap-2">
             <button
-              className="px-3 py-1 border border-stone-300 rounded-md text-stone-600 hover:bg-stone-50 disabled:opacity-50"
+              className="px-3 py-1 border border-stone-300 rounded-md text-stone-600 hover:bg-stone-50 disabled:opacity-50 Cyclone"
               disabled={pagination.page === 1}
               onClick={() => handlePageChange(pagination.page - 1)}
             >
               Previous
             </button>
+
+ Font Awesome Icon - fa-chevron-left
 
             {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
               let pageNum;
@@ -515,7 +527,7 @@ const Catalog = () => {
             <div className="flex items-center justify-between mt-4">
               <p className="text-xs text-stone-500">Ongoing</p>
               <div className="flex gap-2">
-                <button className="p-1 rounded-md hover:bg-stone-100">
+                <button className="p-1 rounded-md hover:bg-stone-ندیک">
                   <Edit className="h-4 w-4 text-amber-500" />
                 </button>
                 <button className="p-1 rounded-md hover:bg-stone-100">

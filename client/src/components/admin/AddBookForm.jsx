@@ -90,12 +90,12 @@ const AddBookForm = ({ isOpen, onClose, onSubmit, newBook, setNewBook, loading }
               />
             </div>
             <div>
-              <label className="block text-stone-700 font-medium mb-2">Publication Date</label>
+              <label className="block text-stone-700 font-medium mb-2">Published Date</label>
               <input
                 type="date"
-                name="publicationDate"
+                name="publishedDate"
                 className="w-full px-4 py-2 rounded-md border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                value={newBook.publicationDate}
+                value={newBook.publishedDate}
                 onChange={handleInputChange}
               />
             </div>
@@ -153,64 +153,87 @@ const AddBookForm = ({ isOpen, onClose, onSubmit, newBook, setNewBook, loading }
               <label className="block text-stone-700 font-medium mb-2">Stock Quantity*</label>
               <input
                 type="number"
-                name="stock"
+                name="stockQuantity"
                 min="0"
                 className="w-full px-4 py-2 rounded-md border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 placeholder="0"
-                value={newBook.stock}
+                value={newBook.stockQuantity}
                 onChange={handleInputChange}
                 required
               />
             </div>
             <div>
-              <label className="block text-stone-700 font-medium mb-2">Featured</label>
+              <label className="block text-stone-700 font-medium mb-2">Bestseller</label>
               <div className="flex items-center space-x-4 mt-2">
                 <label className="flex items-center">
                   <input
                     type="radio"
-                    name="featured"
+                    name="isBestseller"
                     className="h-4 w-4 text-amber-500 focus:ring-amber-500"
-                    checked={newBook.featured}
-                    onChange={() => setNewBook((prev) => ({ ...prev, featured: true }))}
+                    checked={newBook.isBestseller}
+                    onChange={() => setNewBook((prev) => ({ ...prev, isBestseller: true }))}
                   />
                   <span className="ml-2 text-stone-600">Yes</span>
                 </label>
                 <label className="flex items-center">
                   <input
                     type="radio"
-                    name="featured"
+                    name="isBestseller"
                     className="h-4 w-4 text-amber-500 focus:ring-amber-500"
-                    checked={!newBook.featured}
-                    onChange={() => setNewBook((prev) => ({ ...prev, featured: false }))}
+                    checked={!newBook.isBestseller}
+                    onChange={() => setNewBook((prev) => ({ ...prev, isBestseller: false }))}
                   />
                   <span className="ml-2 text-stone-600">No</span>
                 </label>
               </div>
             </div>
             <div>
-              <label className="block text-stone-700 font-medium mb-2">Apply Discount</label>
+              <label className="block text-stone-700 font-medium mb-2">On Sale</label>
               <div className="flex items-center space-x-4 mt-2">
                 <label className="flex items-center">
                   <input
                     type="radio"
-                    name="discount"
+                    name="onSale"
                     className="h-4 w-4 text-amber-500 focus:ring-amber-500"
-                    checked={newBook.discount}
-                    onChange={() => setNewBook((prev) => ({ ...prev, discount: true }))}
+                    checked={newBook.onSale}
+                    onChange={() => setNewBook((prev) => ({ ...prev, onSale: true }))}
                   />
                   <span className="ml-2 text-stone-600">Yes</span>
                 </label>
                 <label className="flex items-center">
                   <input
                     type="radio"
-                    name="discount"
+                    name="onSale"
                     className="h-4 w-4 text-amber-500 focus:ring-amber-500"
-                    checked={!newBook.discount}
-                    onChange={() => setNewBook((prev) => ({ ...prev, discount: false }))}
+                    checked={!newBook.onSale}
+                    onChange={() => setNewBook((prev) => ({ ...prev, onSale: false }))}
                   />
                   <span className="ml-2 text-stone-600">No</span>
                 </label>
               </div>
+            </div>
+            <div>
+              <label className="block text-stone-700 font-medium mb-2">Discount Price ($)</label>
+              <input
+                type="number"
+                name="discountPrice"
+                step="0.01"
+                min="0"
+                className="w-full px-4 py-2 rounded-md border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                placeholder="0.00"
+                value={newBook.discountPrice || ''}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <label className="block text-stone-700 font-medium mb-2">Discount End Date</label>
+              <input
+                type="date"
+                name="discountEndDate"
+                className="w-full px-4 py-2 rounded-md border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                value={newBook.discountEndDate || ''}
+                onChange={handleInputChange}
+              />
             </div>
             <div className="md:col-span-2 lg:col-span-3">
               <label className="block text-stone-700 font-medium mb-2">Book Cover Image</label>

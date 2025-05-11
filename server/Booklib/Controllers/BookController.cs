@@ -35,6 +35,7 @@ namespace Booklib.Controllers
         // GET: Book/GetFiltered
         [HttpGet("GetFiltered")]
         public ActionResult GetFilteredBooks(
+            [FromBody] int? book_id,
             [FromQuery] string? genre,
             [FromQuery] string? search,
             [FromQuery] string? author,
@@ -162,6 +163,7 @@ public IActionResult CreateBook([FromBody] BookRequestDTO bookDTO)
 
     var book = new Book
     {
+        BookId = Guid.NewGuid(),
         Title = bookDTO.Title,
         Author = bookDTO.Author,
         ImageURL = bookDTO.ImageURL,

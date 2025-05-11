@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   createAnnouncement,
   updateAnnouncement,
@@ -7,8 +7,10 @@ import {
 } from '../../services/announcementService';
 import { useAnnouncementContext } from '../../contexts/AnnouncementContext';
 
+const defaultCategories = ['General', 'Events', 'Updates', 'Promotions'];
+
 const AnnouncementManagement = () => {
-  const { announcements, categories, loading, error, fetchAnnouncements } = useAnnouncementContext();
+  const { announcements = [], categories: contextCategories = [], loading, error, fetchAnnouncements } = useAnnouncementContext();
   const [form, setForm] = useState({
     title: '',
     content: '',
@@ -20,6 +22,25 @@ const AnnouncementManagement = () => {
   });
   const [editingId, setEditingId] = useState(null);
   const [formError, setFormError] = useState(null);
+  const [category, setCategory] = useState(''); // State to hold the selected category
+
+  // Combine default categories with categories from context, ensuring no duplicates
+  const allCategories = Array.from(new Set([...defaultCategories, ...contextCategories]));
+
+  useEffect(() => {
+    // When editing, if the announcement has a category, set it in the local state
+    if (editingId && announcements.length > 0) {
+      const announcementToEdit = announcements.find(a => a.announcementId === editingId);
+      if (announcementToEdit && announcementToEdit.category) {
+        setCategory(announcementToEdit.category);
+        setForm(prev => ({ ...prev, category: announcementToEdit.category }));
+      }
+    } else if (!editingId) {
+      // Reset the selected category when not editing
+      setCategory('');
+      setForm(prev => ({ ...prev, category: '' }));
+    }
+  }, [editingId, announcements]);
 
   const resetForm = () => {
     setForm({
@@ -33,6 +54,7 @@ const AnnouncementManagement = () => {
     });
     setEditingId(null);
     setFormError(null);
+    setCategory(''); // Reset the selected category
   };
 
   const handleInputChange = (e) => {
@@ -43,32 +65,81 @@ const AnnouncementManagement = () => {
     }));
   };
 
+  const handleCategoryChange = (e) => {
+    setCategory(e.target.value);
+    setForm((prev) => ({
+      ...prev,
+      category: e.target.value,
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError(null);
     try {
+      const categoryToUse = category || defaultCategories[0]; // Use the selected category or the first default one
+
+      // Validate required fields
+      if (!form.title || !form.content || !form.startDate || !form.endDate || !categoryToUse) {
+        setFormError('Please fill in all required fields.');
+        return;
+      }
+
+      // Convert dates to ISO 8601 datetime strings with time at start of day UTC
+      const startDateISO = new Date(form.startDate).toISOString();
+      const endDateISO = new Date(form.endDate).toISOString();
+
+      // Prepare formData without announcementId for create
+      const formData = {
+        title: form.title,
+        content: form.content,
+        startDate: startDateISO,
+        endDate: endDateISO,
+        isActive: form.isActive,
+        category: categoryToUse,
+        bookId: form.bookId && form.bookId.trim() !== '' ? form.bookId : null,
+      };
+
+      // Validate bookId as GUID format, else set to null
+      const guidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+      if (formData.bookId && !guidRegex.test(formData.bookId)) {
+        formData.bookId = null;
+      }
+
+      console.log('Submitting announcement:', formData);
+
       if (editingId) {
-        await updateAnnouncement(editingId, form);
+        await updateAnnouncement(editingId, formData);
       } else {
-        await createAnnouncement(form);
+        await createAnnouncement(formData);
       }
       await fetchAnnouncements();
       resetForm();
     } catch (err) {
-      setFormError(err.message || 'Failed to save announcement');
+      console.error('Error saving announcement:', err);
+      // Handle detailed validation errors from backend
+      if (err && err.errors) {
+        const errorMessages = Object.entries(err.errors)
+          .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+          .join('; ');
+        setFormError(`Validation errors: ${errorMessages}`);
+      } else {
+        setFormError(err.message || 'Failed to save announcement');
+      }
     }
   };
 
   const handleEdit = (announcement) => {
     setForm({
-      title: announcement.title,
-      content: announcement.content,
+      title: announcement.title || '',
+      content: announcement.content || '',
       startDate: announcement.startDate ? new Date(announcement.startDate).toISOString().substring(0, 10) : '',
       endDate: announcement.endDate ? new Date(announcement.endDate).toISOString().substring(0, 10) : '',
-      isActive: announcement.isActive,
+      isActive: announcement.isActive || false,
       category: announcement.category || '',
       bookId: announcement.bookId || '',
     });
+    setCategory(announcement.category || '');
     setEditingId(announcement.announcementId);
   };
 
@@ -181,12 +252,13 @@ const AnnouncementManagement = () => {
             <select
               id="category"
               name="category"
-              value={form.category}
-              onChange={handleInputChange}
+              value={category}
+              onChange={handleCategoryChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              required
             >
               <option value="">Select category</option>
-              {categories.map((cat) => (
+              {allCategories.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
                 </option>
@@ -233,7 +305,7 @@ const AnnouncementManagement = () => {
         <h3 className="text-xl font-semibold text-gray-800 mb-4">Announcements List</h3>
         {loading ? (
           <p className="text-gray-600">Loading announcements...</p>
-        ) : announcements.length === 0 ? (
+        ) : !Array.isArray(announcements) || announcements.length === 0 ? (
           <p className="text-gray-600">No announcements found.</p>
         ) : (
           <div className="overflow-x-auto">

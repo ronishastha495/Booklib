@@ -14,14 +14,21 @@ const sortOptions = [
     { label: "Price Low to High", value: { sortBy: "price", sortOrder: "asc" } },
     { label: "Price High to Low", value: { sortBy: "price", sortOrder: "desc" } }
 ];
-
-const BACKEND_URL = "http://localhost:5259";
+const categories = [
+    { label: "All", value: "all" },
+    { label: "Bestsellers", value: "bestsellers" },
+    { label: "Award Winners", value: "award-winners" },
+    { label: "New Releases", value: "new-releases" },
+    { label: "New Arrivals", value: "new-arrivals" },
+    { label: "Coming Soon", value: "coming-soon" },
+    { label: "Deals", value: "deals" }
+];
 
 const BookList = () => {
     const [books, setBooks] = useState([]);
     const [totalCount, setTotalCount] = useState(0);
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(2);
     const [totalPages, setTotalPages] = useState(1);
 
     const [genre, setGenre] = useState("");
@@ -29,6 +36,8 @@ const BookList = () => {
     const [search, setSearch] = useState("");
     const [sortBy, setSortBy] = useState("dateAdded");
     const [sortOrder, setSortOrder] = useState("desc");
+    const [category, setCategory] = useState("all");
+    const [categoryCounts, setCategoryCounts] = useState({});
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -36,23 +45,25 @@ const BookList = () => {
     const { cartItems, addToCart } = useCart();
     const [showDialog, setShowDialog] = useState(false);
 
+    // Fetch category counts
+    useEffect(() => {
+        fetch('/api/Book/Categories')
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to fetch categories");
+                return res.json();
+            })
+            .then(data => setCategoryCounts(data))
+            .catch(() => setCategoryCounts({}));
+    }, []);
+
+    // Fetch books based on filters or category
     useEffect(() => {
         setLoading(true);
         setError(null);
 
-        // If no filters, use GetAll endpoint
-        const isNoFilter =
-            !search &&
-            (!genre || genre === "All") &&
-            (availability === "" || availability === "All") &&
-            sortBy === "dateAdded" &&
-            sortOrder === "desc" &&
-            page === 1 &&
-            pageSize === 10;
-
         let url;
-        if (isNoFilter) {
-            url = `${BACKEND_URL}/api/Book/GetAll`;
+        if (category !== "all") {
+            url = `/api/Book/Categories/${category}`;
         } else {
             const params = new URLSearchParams({
                 page,
@@ -63,7 +74,7 @@ const BookList = () => {
                 ...(sortBy ? { sortBy } : {}),
                 ...(sortOrder ? { sortOrder } : {})
             });
-            url = `${BACKEND_URL}/api/Book/GetFiltered?${params}`;
+            url = `/api/Book/GetFiltered?${params}`;
         }
 
         fetch(url)
@@ -72,27 +83,21 @@ const BookList = () => {
                 return res.json();
             })
             .then(data => {
-                // GetAll returns array, GetFiltered returns { Books, TotalCount, TotalPages }
-                let booksArray, count, pages;
-                if (Array.isArray(data)) {
-                    booksArray = data;
-                    count = data.length;
-                    pages = 1;
-                } else {
-                    booksArray = data.Books || [];
-                    count = data.TotalCount || booksArray.length;
-                    pages = data.TotalPages || 1;
-                }
-                setBooks(booksArray.map(book => ({
+                const bookData = category !== "all" ? data : data.Books;
+                setBooks(bookData.map(book => ({
                     id: book.bookId,
                     title: book.title,
                     author: book.author,
                     price: book.price,
                     rating: book.rating || "N/A",
-                    image: book.imageURL || "https://via.placeholder.com/128x192?text=No+Image"
+                    image: book.imageURL || "https://via.placeholder.com/128x192?text=No+Image",
+                    isBestseller: book.isBestseller,
+                    isAwardWinner: book.isAwardWinner,
+                    isComingSoon: book.isComingSoon,
+                    onSale: book.onSale
                 })));
-                setTotalCount(count);
-                setTotalPages(pages);
+                setTotalCount(category !== "all" ? bookData.length : data.TotalCount);
+                setTotalPages(category !== "all" ? 1 : data.TotalPages);
             })
             .catch(() => {
                 setBooks([]);
@@ -101,11 +106,9 @@ const BookList = () => {
                 setError("Could not load books.");
             })
             .finally(() => setLoading(false));
-    }, [page, pageSize, genre, availability, search, sortBy, sortOrder]);
+    }, [page, pageSize, genre, availability, search, sortBy, sortOrder, category]);
 
-    const handleAddToCart = (e, book) => {
-        e.preventDefault();
-        e.stopPropagation();
+    const handleAddToCart = (book) => {
         addToCart(book);
         setShowDialog(true);
         setTimeout(() => setShowDialog(false), 1200);
@@ -113,16 +116,19 @@ const BookList = () => {
 
     const handleGenreChange = (e) => {
         setGenre(e.target.value);
+        setCategory("all");
         setPage(1);
     };
 
     const handleAvailabilityChange = (e) => {
         setAvailability(e.target.value);
+        setCategory("all");
         setPage(1);
     };
 
     const handleSearch = (e) => {
         setSearch(e.target.value);
+        setCategory("all");
         setPage(1);
     };
 
@@ -130,6 +136,15 @@ const BookList = () => {
         const idx = e.target.selectedIndex;
         setSortBy(sortOptions[idx].value.sortBy);
         setSortOrder(sortOptions[idx].value.sortOrder);
+        setCategory("all");
+        setPage(1);
+    };
+
+    const handleCategoryChange = (catValue) => {
+        setCategory(catValue);
+        setGenre("");
+        setAvailability("");
+        setSearch("");
         setPage(1);
     };
 
@@ -139,9 +154,10 @@ const BookList = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-100">
+            {/* Dialog Box */}
             {showDialog && (
-                <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-white border border-gray-300 shadow-lg px-6 py-3 rounded z-50">
+                <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 shadow-lg px-6 py-3 rounded-lg z-50 text-gray-700">
                     Book added to cart!
                 </div>
             )}
@@ -150,8 +166,9 @@ const BookList = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
                     <h1 className="text-2xl font-semibold text-gray-900">BookLib</h1>
                     <div className="flex items-center space-x-4">
+                        {/* Genre Filter */}
                         <select
-                            className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="border border-gray-200 rounded-md px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
                             value={genre}
                             onChange={handleGenreChange}
                         >
@@ -159,8 +176,9 @@ const BookList = () => {
                                 <option key={g} value={g === "All" ? "" : g}>{g}</option>
                             ))}
                         </select>
+                        {/* Availability Filter */}
                         <select
-                            className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="border border-gray-200 rounded-md px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
                             value={availability}
                             onChange={handleAvailabilityChange}
                         >
@@ -168,15 +186,17 @@ const BookList = () => {
                                 <option key={a.label} value={a.value}>{a.label}</option>
                             ))}
                         </select>
+                        {/* Search */}
                         <input
                             type="text"
                             placeholder="Search..."
                             value={search}
                             onChange={handleSearch}
-                            className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="border border-gray-200 rounded-md px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
                         />
+                        {/* Sort */}
                         <select
-                            className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="border border-gray-200 rounded-md px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
                             onChange={handleSortChange}
                         >
                             {sortOptions.map(opt => (
@@ -184,21 +204,36 @@ const BookList = () => {
                             ))}
                         </select>
                         <Link to="/cart" className="relative">
-                            <button className="text-gray-700 hover:text-indigo-600">
+                            <button className="text-gray-700 hover:text-amber-600">
                                 <FaShoppingCart className="w-6 h-6" />
                                 {cartItems.length > 0 && (
-                                    <span className="absolute -top-2 -right-2 bg-indigo-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+                                    <span className="absolute -top-2 -right-2 bg-amber-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
                                         {cartItems.length}
                                     </span>
                                 )}
                             </button>
                         </Link>
-
                     </div>
                 </div>
             </header>
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex items-center justify-between mb-4">
+                {/* Category Selector */}
+                <div className="mb-6 flex flex-wrap gap-2">
+                    {categories.map(cat => (
+                        <button
+                            key={cat.value}
+                            onClick={() => handleCategoryChange(cat.value)}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                                category === cat.value
+                                    ? "bg-amber-600 text-white"
+                                    : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                            }`}
+                        >
+                            {cat.label} {categoryCounts[cat.value] ? `(${categoryCounts[cat.value]})` : ""}
+                        </button>
+                    ))}
+                </div>
+                <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-2">
                         <label htmlFor="booksPerPage" className="text-sm text-gray-700">
                             Books per page:
@@ -207,7 +242,7 @@ const BookList = () => {
                             id="booksPerPage"
                             value={pageSize}
                             onChange={handlePageSizeChange}
-                            className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="border border-gray-200 rounded-md px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
                         >
                             {[2, 3, 5, 10, 20].map(n => (
                                 <option key={n} value={n}>{n}</option>
@@ -218,47 +253,69 @@ const BookList = () => {
                         Showing {(page - 1) * pageSize + 1}- {Math.min(page * pageSize, totalCount)} of {totalCount} books
                     </p>
                 </div>
-                <div className="flex overflow-x-auto space-x-6 pb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {loading ? (
-                        <p className="text-gray-600">Loading books...</p>
+                        <p className="text-gray-600 col-span-full text-center">Loading books...</p>
                     ) : error ? (
-                        <p className="text-red-600">{error}</p>
+                        <p className="text-red-600 col-span-full text-center">{error}</p>
                     ) : books.length > 0 ? (
                         books.map((book) => (
-                            <Link
-                                to={`/book/${book.id}`}
+                            <div
                                 key={book.id}
-                                className="bg-white rounded-lg shadow-sm p-4 flex flex-col items-center min-w-[200px] max-w-[200px] hover:shadow-md transition duration-200 cursor-pointer"
+                                className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center transition-transform transform hover:scale-105 relative"
                             >
+                                {/* Badges */}
+                                {book.isBestseller && (
+                                    <span className="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
+                                        Bestseller
+                                    </span>
+                                )}
+                                {book.isAwardWinner && (
+                                    <span className="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded mt-8">
+                                        Award Winner
+                                    </span>
+                                )}
+                                {book.isComingSoon && (
+                                    <span className="absolute top-2 right-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
+                                        Coming Soon
+                                    </span>
+                                )}
+                                {book.onSale && (
+                                    <span className="absolute top-2 right-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded mt-8">
+                                        On Sale
+                                    </span>
+                                )}
                                 <img
                                     src={book.image}
                                     alt={book.title}
-                                    className="w-32 h-48 object-cover rounded-md mb-4"
+                                    className="w-40 h-56 object-cover rounded-md mb-4"
                                 />
-                                <h3 className="text-lg font-medium text-gray-900 text-center">{book.title}</h3>
-                                <p className="text-sm text-gray-600">{book.author}</p>
+                                <h3 className="text-lg font-medium text-gray-900 text-center line-clamp-2">{book.title}</h3>
+                                <p className="text-sm text-gray-500 text-center">{book.author}</p>
                                 <p className="text-lg font-semibold text-gray-900 mt-2">₹{book.price}</p>
-                                <p className="text-sm text-gray-600">★ {book.rating}</p>
+                                <p className="text-sm text-gray-500 flex items-center">
+                                    <span className="text-amber-500 mr-1">★</span> {book.rating}
+                                </p>
                                 <button
-                                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                    onClick={(e) => handleAddToCart(e, book)}
+                                    className="mt-4 w-full py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                    onClick={() => handleAddToCart(book)}
                                 >
                                     Add to Cart
                                 </button>
-                            </Link>
+                            </div>
                         ))
                     ) : (
-                        <p className="text-gray-600">No books available</p>
+                        <p className="text-gray-600 col-span-full text-center">No books available</p>
                     )}
                 </div>
                 {/* Pagination */}
-                {totalPages > 1 && (
+                {totalPages > 1 && category === "all" && (
                     <div className="flex justify-center mt-8">
-                        <nav className="inline-flex rounded-md shadow">
+                        <nav className="inline-flex rounded-md shadow-sm">
                             <button
                                 onClick={() => setPage(page - 1)}
                                 disabled={page === 1}
-                                className="px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                                className="px-4 py-2 rounded-l-md border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                             >
                                 Previous
                             </button>
@@ -266,10 +323,11 @@ const BookList = () => {
                                 <button
                                     key={i + 1}
                                     onClick={() => setPage(i + 1)}
-                                    className={`px-3 py-2 border border-gray-300 text-sm font-medium ${page === i + 1
-                                        ? "bg-indigo-600 text-white"
-                                        : "bg-white text-gray-500 hover:bg-gray-50"
-                                        }`}
+                                    className={`px-4 py-2 border border-gray-200 text-sm font-medium ${
+                                        page === i + 1
+                                            ? "bg-amber-600 text-white"
+                                            : "bg-white text-gray-700 hover:bg-gray-50"
+                                    }`}
                                 >
                                     {i + 1}
                                 </button>
@@ -277,7 +335,7 @@ const BookList = () => {
                             <button
                                 onClick={() => setPage(page + 1)}
                                 disabled={page === totalPages}
-                                className="px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                                className="px-4 py-2 rounded-r-md border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                             >
                                 Next
                             </button>

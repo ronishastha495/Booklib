@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import BookService from '../services/bookservice';
+import { toast } from 'sonner';
+import BookService from '../services/BookService';
 
 const BookContext = createContext();
 
@@ -87,6 +88,7 @@ export const BookProvider = ({ children }) => {
     try {
       const data = await BookService.createBook(bookData);
       await fetchAllBooks();
+      toast.success('Book added successfully!');
       return data;
     } catch (err) {
       setError(err);
@@ -97,11 +99,12 @@ export const BookProvider = ({ children }) => {
   };
 
   // Update book
-  const updateBook = async (id, bookData) => {
+  const updateBook = async (bookId, bookData) => {
     setLoading(true);
     try {
-      const data = await BookService.updateBook(id, bookData);
+      const data = await BookService.updateBook(bookId, bookData);
       await fetchAllBooks();
+      toast.success('Book updated successfully!');
       return data;
     } catch (err) {
       setError(err);
@@ -112,11 +115,12 @@ export const BookProvider = ({ children }) => {
   };
 
   // Delete book
-  const deleteBook = async (id) => {
+  const deleteBook = async (bookId) => {
     setLoading(true);
     try {
-      const data = await BookService.deleteBook(id);
+      const data = await BookService.deleteBook(bookId);
       await fetchAllBooks();
+      toast.success('Book deleted successfully!');
       return data;
     } catch (err) {
       setError(err);

@@ -23,9 +23,9 @@ const BookService = {
   },
 
   // Get book by ID
-  getBookById: async (id) => {
+  getBookById: async (bookId) => {
     try {
-      const response = await api.get(`/Book/GetById/${id}`);
+      const response = await api.get(`/Book/GetById/${bookId}`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -43,9 +43,9 @@ const BookService = {
   },
 
   // Update a book
-  updateBook: async (id, bookData) => {
+  updateBook: async (bookId, bookData) => {
     try {
-      const response = await api.put(`/Book/Update/${id}`, bookData);
+      const response = await api.put(`/Book/Update/${bookId}`, bookData);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -53,9 +53,9 @@ const BookService = {
   },
 
   // Delete a book
-  deleteBook: async (id) => {
+  deleteBook: async (bookId) => {
     try {
-      const response = await api.delete(`/Book/Delete/${id}`);
+      const response = await api.delete(`/Book/Delete/${bookId}`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -63,9 +63,9 @@ const BookService = {
   },
 
   // Update book stock
-  updateStock: async (id, quantity) => {
+  updateStock: async (bookId, quantity) => {
     try {
-      const response = await api.patch(`/Book/UpdateStock/${id}`, { quantity });
+      const response = await api.patch(`/Book/UpdateStock/${bookId}`, { quantity });
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
