@@ -1,4 +1,4 @@
-// App.tsx
+
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import LoginForm from './components/auth/LoginForm';
@@ -11,7 +11,7 @@ import authService from './services/authService';
 import ErrorBoundary from './components/ErrorBoundary';
 import { CartProvider } from './contexts/CartContext';
 import AdminDashboard from './pages/admin/AdminDashboard';
-import BookDetail from './pages/BookDetails';
+import BookDetail from './pages/BookDetail';
 import BookList from './pages/BookList';
 import BookForm from './components/admin/AddBookForm'
 import Cart from './pages/Cart';
@@ -33,7 +33,7 @@ function App() {
         setLoading(false);
       }
     };
-    
+
     checkAuth();
   }, []);
 
@@ -49,7 +49,10 @@ function App() {
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegisterForm />} />
           <Route path="/addbook" element={<BookForm />} />
-          <Route path="/bookdetail" element={<BookDetail />} />
+
+          <Route path="/books/:id" element={<BookDetail />} />
+          {/* <Route path="/books/:id" element={<BookDetail />} /> */}
+          {/* <Route path="/books" element={<BookList />} /> */}
           <Route path="/booklist" element={<BookList />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/catalog" element={<Catalog />} />
@@ -57,7 +60,7 @@ function App() {
 
 
           {/* <Route path="/admin" element={<AdminDashboard />} /> */}
-          
+
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
@@ -67,9 +70,9 @@ function App() {
                 <AdminDashboard />
               </ErrorBoundary>
             } />
-            <Route path="/books" element={<BookList />} />
+            {/* <Route path="/books" element={<BookList />} /> */}
           </Route>
-          
+
           {/* Fallback route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
