@@ -12,6 +12,7 @@ namespace Booklib.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class OrderController(AppDBContext context) : ControllerBase
     {
         private readonly AppDBContext _context = context;
@@ -48,62 +49,65 @@ namespace Booklib.Controllers
         }
 
         // POST: api/Order
-        [HttpPost]
-        public async Task<ActionResult<OrderResponseDTO>> CreateOrder([FromBody] OrderRequestDTO orderDTO)
+    [HttpPost]
+public async Task<ActionResult<OrderResponseDTO>> CreateOrder([FromBody] OrderRequestDTO orderDTO)
+{
+    var userId = GetCurrentUserId();
+
+    if (orderDTO?.Items == null || !orderDTO.Items.Any())
+        return BadRequest("No items provided in the order");
+
+    // Validate stock availability
+    foreach (var item in orderDTO.Items)
+    {
+        var book = await _context.Books.FindAsync(item.BookId);
+        if (book == null)
+            return BadRequest($"Book with ID {item.BookId} not found");
+            
+        if (book.StockQuantity < item.Quantity)
+            return BadRequest($"Not enough stock for book: {book.Title}");
+    }
+
+    // Calculate discounts
+    var itemCount = orderDTO.Items.Sum(i => i.Quantity);
+    var discountPercentage = CalculateDiscountPercentage(userId, itemCount);
+
+    // Create order
+    var order = new Order
+    {
+        UserId = userId,
+        Status = OrderStatus.Pending,
+        Items = new List<OrderItem>()
+    };
+
+    decimal subtotal = 0;
+
+    // Add order items and update stock
+    foreach (var itemDTO in orderDTO.Items)
+    {
+        var book = await _context.Books.FindAsync(itemDTO.BookId);
+        var price = book.OnSale ? book.DiscountPrice ?? book.Price : book.Price;
+        
+        order.Items.Add(new OrderItem
         {
-            var userId = GetCurrentUserId();
-            var cart = await _context.Carts
-                .Include(c => c.Items)
-                .ThenInclude(i => i.Book)
-                .FirstOrDefaultAsync(c => c.UserId == userId);
+            BookId = itemDTO.BookId,
+            Quantity = itemDTO.Quantity,
+            UnitPrice = price
+        });
 
-            if (cart == null || !cart.Items.Any())
-                return BadRequest("Cart is empty");
+        subtotal += price * itemDTO.Quantity;
+        book.StockQuantity -= itemDTO.Quantity;
+    }
 
-            // Validate stock availability
-            foreach (var item in cart.Items)
-            {
-                if (item.Book.StockQuantity < item.Quantity)
-                    return BadRequest($"Not enough stock for book: {item.Book.Title}");
-            }
+    order.SubTotal = subtotal;
+    order.DiscountPercentage = discountPercentage;
+    order.FinalTotal = subtotal * (1 - discountPercentage / 100);
 
-            // Calculate discounts
-            var itemCount = cart.Items.Sum(i => i.Quantity);
-            var discountPercentage = CalculateDiscountPercentage(userId, itemCount);
+    _context.Orders.Add(order);
+    await _context.SaveChangesAsync();
 
-            // Create order
-            var order = new Order
-            {
-                UserId = userId,
-                Status = OrderStatus.Pending,
-                SubTotal = cart.Items.Sum(i => i.Quantity * (i.Book.OnSale ? i.Book.DiscountPrice ?? i.Book.Price : i.Book.Price))
-            };
-
-            order.DiscountPercentage = discountPercentage;
-            order.FinalTotal = order.SubTotal * (1 - discountPercentage / 100);
-
-            // Add order items and update stock
-            foreach (var cartItem in cart.Items)
-            {
-                order.Items.Add(new OrderItem
-                {
-                    BookId = cartItem.BookId,
-                    Quantity = cartItem.Quantity,
-                    UnitPrice = cartItem.Book.OnSale ? cartItem.Book.DiscountPrice ?? cartItem.Book.Price : cartItem.Book.Price
-                });
-
-                cartItem.Book.StockQuantity -= cartItem.Quantity;
-            }
-
-            _context.Orders.Add(order);
-            _context.CartItems.RemoveRange(cart.Items); // Clear cart
-            await _context.SaveChangesAsync();
-
-            // TODO: Send confirmation email with claim code
-
-            return CreatedAtAction(nameof(GetOrder), new { id = order.OrderId }, MapToOrderResponseDTO(order));
-        }
-
+    return CreatedAtAction(nameof(GetOrder), new { id = order.OrderId }, MapToOrderResponseDTO(order));
+}
         // POST: api/Order/{id}/cancel
         [HttpPost("{id}/cancel")]
         public async Task<ActionResult> CancelOrder(Guid id, [FromBody] string reason)
@@ -177,15 +181,15 @@ namespace Booklib.Controllers
             return discount;
         }
 
-       private Guid GetCurrentUserId()
-{
-    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
-                    ?? User.FindFirst("sub")?.Value;
-    
-    if (userIdClaim == null)
-        throw new UnauthorizedAccessException("User ID not found in token");
+        private Guid GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                            ?? User.FindFirst("sub")?.Value;
 
-    return Guid.Parse(userIdClaim);
-}
+            if (userIdClaim == null)
+                throw new UnauthorizedAccessException("User ID not found in token");
+
+            return Guid.Parse(userIdClaim);
+        }
     }
 }

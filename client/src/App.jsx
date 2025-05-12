@@ -1,5 +1,4 @@
-// App.tsx
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
@@ -7,75 +6,89 @@ import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useEffect, useState } from 'react';
-import authService from './services/authService';
 import ErrorBoundary from './components/ErrorBoundary';
 import { CartProvider } from './contexts/CartContext';
 import AdminDashboard from './pages/admin/AdminDashboard';
-import BookDetail from './pages/BookDetails';
+import BookDetail from './pages/BookDetail';
 import BookList from './pages/BookList';
-import BookForm from './components/admin/AddBookForm'
+import BookForm from './components/admin/AddBookForm';
 import Cart from './pages/Cart';
 import Catalog from './pages/admin/Catalog';
-import { Car } from 'e-react';
+import { useAuth } from './contexts/AuthContext';
 
 function App() {
-  const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true);
+  const { auth, loading } = useAuth();
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkInitialAuth = () => {
       try {
-        const user = await authService.getUser();
-        setUserRole(user?.role || null);
+        console.log('App initialization - Auth status:', {
+          hasToken: !!auth?.token,
+          role: auth?.role || 'none',
+          hasUser: !!auth?.user,
+          userId: auth?.user?.id || 'none'
+        });
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error('Initial auth check failed:', error);
       } finally {
-        setLoading(false);
+        setInitializing(false);
       }
     };
-    
-    checkAuth();
-  }, []);
 
-  if (loading) {
-    return <div>Loading...</div>;
+    if (!loading) {
+      checkInitialAuth();
+    }
+  }, [auth, loading]);
+
+  if (loading || initializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading application...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <CartProvider>
+        <Toaster position="top-right" />
         <Routes>
+          {/* Public routes */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegisterForm />} />
-          <Route path="/addbook" element={<BookForm />} />
-          <Route path="/bookdetail" element={<BookDetail />} />
-          <Route path="/booklist" element={<BookList />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/catalog" element={<Catalog />} />
-
-
-
-          {/* <Route path="/admin" element={<AdminDashboard />} /> */}
+          <Route path="/books" element={<BookList />} />
           
-          {/* Protected routes */}
+          {/* Protected Member routes */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            {/* Wrap your components with ErrorBoundary */}
-            <Route path="/admindash" element={
-              <ErrorBoundary>
-                <AdminDashboard />
-              </ErrorBoundary>
-            } />
-            <Route path="/books" element={<BookList />} />
+            <Route path="/books/:id" element={<BookDetail />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                auth?.role?.toLowerCase() === 'admin' 
+                  ? <Navigate to="/admindash" replace /> 
+                  : <Dashboard />
+              } 
+            />
           </Route>
-          
+
+          {/* Admin routes */}
+          <Route element={<ProtectedRoute adminOnly />}>
+            <Route path="/admindash" element={<AdminDashboard />} />
+            <Route path="/admin/books/add" element={<BookForm />} />
+            <Route path="/admin/catalog" element={<Catalog />} />
+          </Route>
+
           {/* Fallback route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </CartProvider>
-      <Toaster position="top-right" richColors />
-    </>
+    </ErrorBoundary>
   );
 }
 
