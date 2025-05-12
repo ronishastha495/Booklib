@@ -15,7 +15,8 @@ import BookForm from './components/admin/AddBookForm';
 import Cart from './pages/Cart';
 import Catalog from './pages/admin/Catalog';
 import { useAuth } from './contexts/AuthContext';
-
+import { OrderProvider } from './contexts/OrderContext'; // Add this
+import OrderHistory from './pages/OrderHistory';
 function App() {
   const [initializing, setInitializing] = useState(true);
   const { auth, loading } = useAuth();
@@ -55,6 +56,7 @@ function App() {
   return (
     <ErrorBoundary>
       <CartProvider>
+        <OrderProvider>
         <Toaster position="top-right" />
         <Routes>
           {/* Public routes */}
@@ -65,6 +67,8 @@ function App() {
           
           {/* Protected Member routes */}
           <Route element={<ProtectedRoute />}>
+            <Route path="/orders" element={<OrderHistory />} />
+
             <Route path="/books/:id" element={<BookDetail />} />
             <Route path="/cart" element={<Cart />} />
             <Route 
@@ -87,6 +91,7 @@ function App() {
           {/* Fallback route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </OrderProvider>
       </CartProvider>
     </ErrorBoundary>
   );
