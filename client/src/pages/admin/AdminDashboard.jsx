@@ -1,35 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Library, Bell, Search, ChevronDown, Menu, LogOut
 } from 'e-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import SidebarItem from '../../components/adminsidebar/SidebarItem';
 import ADashboard from './ADashbord';
-import BookList from '../BookList';
 import Catalog from './Catalog';
 import Inventory from './Inventory';
 import Member from './Members';
 import DiscountManagement from '../../components/admin/DiscountManagement';
 import AnnouncementManagement from '../../components/admin/AnnouncementManagement';
 import Reviews from './Reviews';
-import Reports from './Reports';
-import { BarChart2, BookOpen, Box, FileText, Star, Tag, Users } from 'react-feather'; // Added FileText import
+import { BarChart2, BookOpen, Box, FileText, Star, Tag, Users } from 'react-feather';
 import { BookProvider } from '../../contexts/BookContext';
 import { DiscountProvider } from '../../contexts/DiscountContext';
 import { AnnouncementProvider } from '../../contexts/AnnouncementContext';
+import { toast } from 'sonner';
 
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const navigate = useNavigate();
+  const { auth, logout } = useAuth();
+
+  // Add authentication check
+  useEffect(() => {
+    if (!auth?.token || auth.role?.toLowerCase() !== 'admin') {
+      toast.error('Unauthorized access');
+      navigate('/login', { replace: true });
+    }
+  }, [auth, navigate]);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  const handleLogout = () => {
-    navigate('/login');
-  };
+// In AdminDashboard.jsx
+const handleLogout = async () => {
+  try {
+    await logout(); // This will handle the navigation internally
+  } catch (error) {
+    console.error('Logout error:', error);
+    toast.error('Error during logout');
+  }
+};
+
+  // If not authenticated or not admin, don't render the dashboard
+  if (!auth?.token || auth.role?.toLowerCase() !== 'admin') {
+    return null;
+  }
 
   return (
     <div className="flex h-screen bg-stone-100 font-sans">
@@ -44,9 +64,10 @@ const AdminDashboard = () => {
             {sidebarOpen ? <ChevronDown className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
+        {/* Rest of your sidebar code remains the same */}
         <div className="flex-1 overflow-y-auto">
           <nav className="p-2">
-            <SidebarItem 
+       <SidebarItem 
               icon={<BarChart2 />} 
               text="Dashboard" 
               active={activeTab === 'dashboard'} 
@@ -95,6 +116,7 @@ const AdminDashboard = () => {
               onClick={() => setActiveTab('reviews')} 
               collapsed={!sidebarOpen} 
             />
+          
           </nav>
         </div>
         <div className="p-4 border-t border-stone-700">

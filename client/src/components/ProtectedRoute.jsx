@@ -1,30 +1,32 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import authService from '../services/authService';
+import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
 
-const ProtectedRoute = () => {
+const ProtectedRoute = ({ adminOnly = false }) => {
   const location = useLocation();
-  const user = authService.getUser();
-  
-  if (!user) {
-    // Redirect to login if not authenticated
-    return <Navigate to="/login" replace />;
+  const { auth, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      </div>
+    );
   }
-  
-  // Check if user is on the correct route based on role
-  const userRole = user.role?.toLowerCase();
-  
-  // For admin users
-  if (userRole === 'admin' && !location.pathname.startsWith('/admindash')) {
-    return <Navigate to="/admindash" replace />;
+
+  // If not authenticated, redirect to login
+  if (!auth?.token) {
+    toast.error("Please login to access this feature");
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
-  
-  // For regular users (members)
-  if ((userRole === 'user' || userRole === 'member') && 
-      !location.pathname.startsWith('/dashboard')) {
+
+  // For admin routes, check if user is admin
+  if (adminOnly && auth.role?.toLowerCase() !== 'admin') {
+    toast.error("Admin access required");
     return <Navigate to="/dashboard" replace />;
   }
-  
-  // If user is on the correct route, render the component
+
   return <Outlet />;
 };
 

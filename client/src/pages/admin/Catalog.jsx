@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Eye, Edit, Trash2, Percent, Search, Save, X } from 'react-feather';
 import { Toaster } from 'sonner';
 import { useBookContext } from '../../contexts/BookContext';
+import { useDiscounts } from '../../contexts/DiscountContext';
+import BookService from '../../services/bookService';
 import AddBookForm from '../../components/admin/AddBookForm';
 
 const Catalog = () => {

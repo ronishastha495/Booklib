@@ -55,8 +55,10 @@ public class AuthController(AppDBContext context, JwtService jwtService, ILogger
         });
     }
 
-    [HttpPost("login")]
-    public async Task<ActionResult<AuthResponseDto>> Login(UserLoginDto dto)
+  [HttpPost("login")]
+public async Task<ActionResult<AuthResponseDto>> Login(UserLoginDto dto)
+{
+    try
     {
         var user = await _context.User.FirstOrDefaultAsync(u => u.Email == dto.Email);
         if (user == null || !VerifyPassword(dto.Password, user.PasswordHash))
@@ -70,15 +72,27 @@ public class AuthController(AppDBContext context, JwtService jwtService, ILogger
 
         var token = _jwtService.GenerateToken(user, out var tokenExpiration);
 
-        return Ok(new AuthResponseDto
-        {
-            Token = token,
-            RefreshToken = refreshToken,
-            Expiration = tokenExpiration,
-            Role = user.Role
-        });
-    }
+        _logger.LogInformation($"User {user.Email} logged in successfully. Role: {user.Role}");
 
+       return Ok(new
+{
+    Token = token,
+    RefreshToken = refreshToken,
+    Expiration = tokenExpiration,
+    Role = user.Role,
+    FirstName = user.FirstName,
+    LastName = user.LastName,
+    Email = user.Email,
+    Id = user.Id
+});
+
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError($"Login failed: {ex.Message}");
+        return StatusCode(500, "An error occurred during login.");
+    }
+}
     [HttpPost("refresh")]
     public async Task<IActionResult> RefreshToken([FromBody] string refreshToken)
     {

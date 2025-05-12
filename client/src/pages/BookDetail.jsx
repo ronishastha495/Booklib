@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams,useNavigate } from "react-router-dom";
+
 import { FaArrowLeft, FaShoppingCart, FaHeart, FaRegHeart } from "react-icons/fa";
 import { useCart } from '../contexts/CartContext';
+
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
+
 
 // Utility functions for bookmarks
 const getBookmarks = () => {
@@ -22,18 +27,20 @@ const formatDateTime = (date) => {
 
 const BACKEND_URL = "http://localhost:5259";
 
+
 const BookDetail = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
+    const { addToCart } = useCart();
+    const { auth, isAuthenticated } = useAuth(); // Get isAuthenticated
     const [book, setBook] = useState(null);
     const [quantity, setQuantity] = useState(1);
     const [isBookmarked, setIsBookmarked] = useState(false);
-    const [isAdded, setIsAdded] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [currentDateTime, setCurrentDateTime] = useState(formatDateTime(new Date()));
-    const currentUser = "BipanaPokharel"; // You can replace this with actual user data
-
-    const { addToCart } = useCart();
+    const [isAdded, setIsAdded] = useState(false);
+const currentUser = auth?.user?.email || 'Guest';
 
     // Update date/time every second
     useEffect(() => {
@@ -46,48 +53,31 @@ const BookDetail = () => {
     }, []);
 
     // Fetch book data
-    useEffect(() => {
-        const fetchBook = async () => {
-            try {
-                setLoading(true);
-                const response = await fetch(`${BACKEND_URL}/api/Book/GetById/${id}`);
-                if (!response.ok) {
-                    throw new Error('Book not found');
-                }
-                const data = await response.json();
-                setBook({
-                    bookId: data.bookId,
-                    title: data.title,
-                    author: data.author,
-                    imageURL: data.imageURL || "https://via.placeholder.com/300x450?text=No+Image",
-                    isbn: data.isbn,
-                    description: data.description,
-                    genre: data.genre,
-                    price: data.price,
-                    yearPublished: data.yearPublished,
-                    publisher: data.publisher,
-                    language: data.language,
-                    format: data.format,
-                    stockQuantity: data.stockQuantity,
-                    isAvailable: data.isAvailable,
-                    onSale: data.onSale,
-                    discountPrice: data.discountPrice,
-                    discountEndDate: data.discountEndDate,
-                    addedDate: data.addedDate
-                });
-                setError(null);
-            } catch (error) {
-                setError('Failed to load book details. Please try again later.');
-                setBook(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (id) {
-            fetchBook();
+   useEffect(() => {
+    const fetchBook = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch(`${BACKEND_URL}/api/Book/GetById/${id}`);
+        
+        if (!response.ok) {
+          throw new Error(response.status === 404 
+            ? 'Book not found' 
+            : 'Failed to load book details');
         }
-    }, [id]);
+        
+        const data = await response.json();
+        setBook(data);
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBook();
+  }, [id]);
+
 
     // Bookmark logic
     useEffect(() => {
@@ -106,21 +96,39 @@ const BookDetail = () => {
         setIsBookmarked(!isBookmarked);
     };
 
-    const handleAddToCart = () => {
-        if (book) {
-            const bookForCart = {
-                id: book.bookId,
-                title: book.title,
-                author: book.author,
-                price: book.onSale ? book.discountPrice : book.price,
-                image: book.imageURL,
-                quantity: quantity
-            };
-            addToCart(bookForCart);
-            setIsAdded(true);
-            setTimeout(() => setIsAdded(false), 2000);
-        }
+  const handleAddToCart = () => {
+    // Check auth status
+    if (!auth?.user?.email) { // Change this to check for email specifically
+        toast.error("Please login to add items to cart");
+        navigate('/login', { state: { from: `/books/${id}` } });
+        return;
+    }
+
+    if (!book) {
+        toast.error("Book data not available");
+        return;
+    }
+
+    const bookForCart = {
+        id: book.bookId,
+        title: book.title,
+        author: book.author,
+        price: book.onSale ? Number(book.discountPrice) : Number(book.price),
+        image: book.imageURL,
+        stockQuantity: Number(book.stockQuantity),
+        quantity: Number(quantity)
     };
+
+    try {
+        addToCart(bookForCart);
+        setIsAdded(true);
+        toast.success("Added to cart successfully!");
+        setTimeout(() => setIsAdded(false), 2000);
+    } catch (error) {
+        console.error("Error adding to cart:", error);
+        toast.error("Failed to add to cart");
+    }
+};
 
     const handleQuantityChange = (e) => {
         const value = parseInt(e.target.value);
@@ -214,11 +222,15 @@ const BookDetail = () => {
                         <div className="md:flex">
                             {/* Book Image */}
                             <div className="md:w-1/3 bg-gray-100 flex items-center justify-center p-8">
-                                <img
-                                    src={book.imageURL}
-                                    alt={book.title}
-                                    className="object-contain max-h-96 w-auto rounded shadow-md"
-                                />
+                             <img
+            src={book.imageURL}
+            alt={book.title}
+            className="object-contain max-h-96 w-auto rounded shadow-md"
+            onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = '/placeholder-book.png'; // Add a placeholder image
+            }}
+        />
                             </div>
 
                             {/* Book Details */}

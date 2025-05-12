@@ -1,9 +1,10 @@
-using System;
-
-namespace Booklib.DTOs.Request;
-
 public class OrderRequestDTO
-    {
-        // Optional: Any additional order-specific information
-        public string? Notes { get; set; }
-    }
+{
+    public List<OrderItemRequestDTO> Items { get; set; } = new();
+}
+
+public class OrderItemRequestDTO
+{
+    public Guid BookId { get; set; }
+    public int Quantity { get; set; }
+}
