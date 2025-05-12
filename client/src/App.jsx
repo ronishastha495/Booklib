@@ -20,7 +20,7 @@ import Catalog from './pages/admin/Catalog';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import StaffDashboard from './pages/staff/StaffDash';
-import Orders from './pages/Orders'; // Make sure this component exists
+import Orders from './pages/Orders'; 
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import NavBar from './components/common/navbar'; // Make sure to import NavBar
