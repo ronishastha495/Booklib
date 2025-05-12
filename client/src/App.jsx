@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { useEffect, useState } from 'react';
 
@@ -12,112 +12,96 @@ import Landing from './pages/Landing';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import Home from './pages/Home';
+import ProtectedRoute from './components/ProtectedRoute';
+import { useEffect, useState } from 'react';
+import ErrorBoundary from './components/ErrorBoundary';
+import { CartProvider } from './contexts/CartContext';
+import AdminDashboard from './pages/admin/AdminDashboard';
 import BookDetail from './pages/BookDetail';
 import BookList from './pages/BookList';
 import BookForm from './components/admin/AddBookForm';
 import Cart from './pages/Cart';
 import Catalog from './pages/admin/Catalog';
-import UserDashboard from './pages/UserDashboard';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import StaffDashboard from './pages/staff/StaffDash';
-import Orders from './pages/Orders'; 
-import ProtectedRoute from './components/ProtectedRoute';
-import ErrorBoundary from './components/ErrorBoundary';
-import NavBar from './components/common/navbar'; // Make sure to import NavBar
-
-// Services
-import authService from './services/authService';
-
+import { useAuth } from './contexts/AuthContext';
+import { OrderProvider } from './contexts/OrderContext'; // Add this
+import OrderHistory from './pages/OrderHistory';
 function App() {
-  const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true);
+  const { auth, loading } = useAuth();
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkInitialAuth = () => {
       try {
-        const user = await authService.getUser();
-        setUserRole(user?.role || null);
+        console.log('App initialization - Auth status:', {
+          hasToken: !!auth?.token,
+          role: auth?.role || 'none',
+          hasUser: !!auth?.user,
+          userId: auth?.user?.id || 'none'
+        });
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error('Initial auth check failed:', error);
       } finally {
-        setLoading(false);
+        setInitializing(false);
       }
     };
 
-    checkAuth();
-  }, []);
+    if (!loading) {
+      checkInitialAuth();
+    }
+  }, [auth, loading]);
 
-  if (loading) {
+  if (loading || initializing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading application...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <BrowserRouter>
-      <ErrorBoundary>
-        <AuthProvider>
-          <CartProvider>
-            <OrderProvider>
-              {/* NavBar will be shown on all routes */}
-              {/* <NavBar /> */}
-              
-              <main className="min-h-screen bg-gray-50">
-                <Routes>
-                  {/* Public Routes */}
-                  <Route path="/" element={<Landing />} />
-                  <Route path="/login" element={<LoginForm />} />
-                  <Route path="/register" element={<RegisterForm />} />
-                  <Route path="/home" element={<Home />} />
-                  <Route path="/books/:id" element={<BookDetail />} />
-                  <Route path="/booklist" element={<BookList />} />
-                  
-                  {/* Protected Routes */}
-                  <Route element={<ProtectedRoute />}>
-                    <Route path="/userdashboard" element={<UserDashboard />} />
-                    <Route path="/cart" element={<Cart />} />
-                    <Route path="/orders" element={<Orders />} />
-                  </Route>
+    <ErrorBoundary>
+      <CartProvider>
+        <OrderProvider>
+        <Toaster position="top-right" />
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<LoginForm />} />
+          <Route path="/register" element={<RegisterForm />} />
+          <Route path="/books" element={<BookList />} />
+          
+          {/* Protected Member routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/orders" element={<OrderHistory />} />
 
-                  {/* Staff Protected Routes */}
-                  <Route 
-                    element={
-                      <ProtectedRoute allowedRoles={['staff', 'admin']} />
-                    }
-                  >
-                    <Route path="/staffdash" element={<StaffDashboard />} />
-                    <Route path="/catalog" element={<Catalog />} />
-                  </Route>
+            <Route path="/books/:id" element={<BookDetail />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                auth?.role?.toLowerCase() === 'admin' 
+                  ? <Navigate to="/admindash" replace /> 
+                  : <Dashboard />
+              } 
+            />
+          </Route>
 
-                  {/* Admin Protected Routes */}
-                  <Route 
-                    element={
-                      <ProtectedRoute allowedRoles={['admin']} />
-                    }
-                  >
-                    <Route path="/admindash" element={<AdminDashboard />} />
-                    <Route path="/addbook" element={<BookForm />} />
-                  </Route>
+          {/* Admin routes */}
+          <Route element={<ProtectedRoute adminOnly />}>
+            <Route path="/admindash" element={<AdminDashboard />} />
+            <Route path="/admin/books/add" element={<BookForm />} />
+            <Route path="/admin/catalog" element={<Catalog />} />
+          </Route>
 
-                  {/* Fallback Route */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </main>
-
-              {/* Toast notifications */}
-              <Toaster 
-                position="top-right" 
-                richColors 
-                closeButton
-                duration={4000}
-              />
-            </OrderProvider>
-          </CartProvider>
-        </AuthProvider>
-      </ErrorBoundary>
-    </BrowserRouter>
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        </OrderProvider>
+      </CartProvider>
+    </ErrorBoundary>
   );
 }
 

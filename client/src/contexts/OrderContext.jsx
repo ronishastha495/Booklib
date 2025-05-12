@@ -1,11 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import {
-  getUserOrders,
-  getOrderById,
-  createOrder,
-  cancelOrder,
-} from '../services/orderService';
-
+import orderService from '../services/orderService';
 const OrderContext = createContext();
 
 export const useOrder = () => useContext(OrderContext);
@@ -17,8 +11,8 @@ export const OrderProvider = ({ children }) => {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const data = await getUserOrders();
-      setOrders(data);
+      const response = await orderService.getOrders(); // Update this
+      setOrders(response.data); // Make sure to use response.data
     } catch (error) {
       console.error('Failed to load orders:', error);
     } finally {
@@ -26,9 +20,9 @@ export const OrderProvider = ({ children }) => {
     }
   };
 
-  const placeOrder = async (notes = '') => {
+  const placeOrder = async (orderData) => { // Update parameters
     try {
-      const newOrder = await createOrder(notes);
+      const newOrder = await orderService.createOrder(orderData);
       setOrders((prev) => [newOrder, ...prev]);
       return newOrder;
     } catch (error) {
@@ -39,7 +33,7 @@ export const OrderProvider = ({ children }) => {
 
   const cancelUserOrder = async (id, reason) => {
     try {
-      await cancelOrder(id, reason);
+      await orderService.cancelOrder(id, reason);
       setOrders((prev) =>
         prev.map((order) =>
           order.orderId === id ? { ...order, status: 'Cancelled' } : order
@@ -63,10 +57,12 @@ export const OrderProvider = ({ children }) => {
         fetchOrders,
         placeOrder,
         cancelUserOrder,
-        getOrderById,
+        getOrderById: orderService.getOrderById, // Use service method directly
       }}
     >
       {children}
     </OrderContext.Provider>
   );
 };
+
+export default OrderProvider; // Add this export
