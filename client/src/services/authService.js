@@ -4,11 +4,10 @@ const API_URL = 'http://localhost:5259/api/auth'; // Make sure this matches your
 
 const authService = {
   // Login function to authenticate user
-  async login(email, password, role = 'Member') {
+  async login(email, password) {
     const response = await axios.post(`${API_URL}/login`, { 
       email, 
       password, 
-      role 
     });
     
     if (response.data.token) {

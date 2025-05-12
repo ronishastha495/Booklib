@@ -1,16 +1,63 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { BookOpen, ShoppingCart, LogOut, Package } from "lucide-react";
+import authService from "../services/authService";
 
-const Dashboard = () => {
+const UserDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Removed user profile fetch due to missing backend endpoint
+  useEffect(() => {
+    // Debug: Check what's in localStorage
+    console.log('Token:', localStorage.getItem('token'));
+    console.log('User Role:', localStorage.getItem('userRole'));
+    console.log('Raw user data in localStorage:', localStorage.getItem('user'));
+
+    try {
+      const rawUserData = localStorage.getItem('user');
+      if (rawUserData) {
+        console.log('Parsed user data:', JSON.parse(rawUserData));
+      } else {
+        console.log('No user data in localStorage');
+      }
+    } catch (e) {
+      console.error('Error parsing user data from localStorage:', e);
+    }
+
+    const fetchUserData = () => {
+      try {
+        // Check if user is authenticated
+        if (!authService.isAuthenticated()) {
+          console.log("No authentication token found, redirecting to login");
+          navigate("/login");
+          return;
+        }
+
+        // Get user data from localStorage
+        const userData = authService.getUser();
+        console.log("User data retrieved from authService:", userData);
+
+        if (!userData) {
+          console.log("No user data found, redirecting to login");
+          navigate("/login");
+          return;
+        }
+
+        setUser(userData);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        navigate("/login");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    authService.logout();
     navigate("/login");
   };
 
@@ -60,7 +107,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="flex-1 p-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">
-          Welcome!
+          Welcome {user?.name || user?.username || user?.email?.split('@')[0] || ''}!
         </h1>
 
         <div className="bg-white rounded-lg shadow p-6 mb-8 max-w-md">
@@ -86,22 +133,22 @@ const Dashboard = () => {
           </div>
           <div className="space-y-2 text-gray-700">
             <p>
-              <span className="font-semibold">Name:</span> N/A
+              <span className="font-semibold">Name:</span> {user?.name || user?.username || user?.firstName || 'N/A'}
             </p>
             <p>
-              <span className="font-semibold">Email:</span> N/A
+              <span className="font-semibold">Email:</span> {user?.email || 'N/A'}
             </p>
             <p>
-              <span className="font-semibold">Role:</span> N/A
+              <span className="font-semibold">Role:</span> {user?.role || authService.getUserRole() || 'Member'}
             </p>
             <p>
               <span className="font-semibold">Member since:</span>{" "}
-              N/A
+              {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}
             </p>
           </div>
         </div>
 
-        {/* Replace these stats with real API calls as needed */}
+        {/* Quick Stats - To be implemented with real data later */}
         <div className="bg-white rounded-lg shadow p-6 max-w-md">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Stats</h2>
           <div className="grid grid-cols-3 gap-4">
@@ -124,4 +171,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default UserDashboard;

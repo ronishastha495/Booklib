@@ -1,102 +1,84 @@
 import { useState } from 'react';
 import { Eye, CheckCircle, XCircle, Search } from 'lucide-react';
+import { useOrder } from '../../contexts/OrderContext'; // Adjust the import path as needed
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function StaffDashboard() {
-  // Sample order data
-  const initialOrders = [
-    {
-      id: 1,
-      orderNumber: "ORD-2025-001",
-      member: "John Smith",
-      date: "2025-05-10",
-      items: 3,
-      total: "$45.99",
-      status: "Pending",
-    },
-    {
-      id: 2,
-      orderNumber: "ORD-2025-002",
-      member: "Sarah Johnson",
-      date: "2025-05-09",
-      items: 1,
-      total: "$18.99",
-      status: "Pending",
-    },
-    {
-      id: 3,
-      orderNumber: "ORD-2025-003",
-      member: "Michael Davis",
-      date: "2025-05-09",
-      items: 5,
-      total: "$87.50",
-      status: "Pending",
-    },
-    {
-      id: 4,
-      orderNumber: "ORD-2025-004",
-      member: "Emily Wilson",
-      date: "2025-05-08",
-      items: 2,
-      total: "$32.98",
-      status: "Pending",
-    },
-    {
-      id: 5,
-      orderNumber: "ORD-2025-005",
-      member: "David Brown",
-      date: "2025-05-08",
-      items: 4,
-      total: "$65.96",
-      status: "Pending",
-    },
-    {
-      id: 6,
-      orderNumber: "ORD-2025-006",
-      member: "Lisa Taylor",
-      date: "2025-05-07",
-      items: 1,
-      total: "$20.99",
-      status: "Pending",
-    },
-    {
-      id: 7,
-      orderNumber: "ORD-2025-007",
-      member: "Robert Martinez",
-      date: "2025-05-07",
-      items: 3,
-      total: "$42.97",
-      status: "Pending",
-    },
-  ];
+  const { orders = [], loading, fetchOrders } = useOrder() || {};
 
-  const [orders, setOrders] = useState(initialOrders);
+  const { auth } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('Pending');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   // Filter orders based on search term and status
   const filteredOrders = orders.filter((order) => {
     const matchesSearch = 
-      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.member.toLowerCase().includes(searchTerm.toLowerCase());
+      order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.member?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = order.status === statusFilter || statusFilter === 'All';
     return matchesSearch && matchesStatus;
   });
 
   // Handle order status change
-  const handleStatusChange = (id, newStatus) => {
-    setOrders(orders.map(order => 
-      order.id === id ? { ...order, status: newStatus } : order
-    ));
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      // You might want to add API calls here to update the status in the backend
+      // For example:
+      // if (newStatus === 'Cancelled') {
+      //   await cancelOrder(id, 'Changed by staff');
+      // }
+      // Then update the local state
+      setOrders(orders.map(order => 
+        order.id === id ? { ...order, status: newStatus } : order
+      ));
+    } catch (error) {
+      console.error('Failed to update order status:', error);
+    }
   };
 
-  // Handle view order details (placeholder function)
+  // Handle view order details
   const handleViewOrder = (id) => {
-    alert(`View details for order ID: ${id}`);
+    // You can use getOrderById from the context if needed
+    const order = orders.find(o => o.id === id);
+    console.log('Order details:', order);
+    // Or show a modal with details
+    alert(`View details for order ID: ${id}\nMember: ${order.member?.name}\nTotal: ${order.total}`);
   };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Staff Dashboard - Order Management</h1>
+        <div className="flex justify-center items-center h-64">
+          <p>Loading orders...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Staff Dashboard - Order Management</h1>
+
+      {auth && (
+        <div className="mb-6 flex items-center space-x-4 bg-white p-4 rounded shadow">
+          {auth.icon ? (
+            <img
+              src={auth.icon}
+              alt="User Icon"
+              className="w-12 h-12 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold text-lg">
+              {auth.name ? auth.name.charAt(0).toUpperCase() : 'U'}
+            </div>
+          )}
+          <div>
+            <p className="text-lg font-semibold text-gray-900">{auth.name}</p>
+            <p className="text-sm text-gray-600">{auth.email}</p>
+          </div>
+        </div>
+      )}
       
       <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="relative w-full md:w-64">
@@ -137,10 +119,44 @@ export default function StaffDashboard() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order #</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Items</th>
+                <th className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Total</th>
+                <th className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    order.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 
+                    order.status === 'Confirmed' ? 'bg-green-100 text-green-800' : 
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {order.status}
+                  </span>
+                </th>
+                <th className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div className="flex items-center space-x-3">
+                    <button 
+                      onClick={() => handleViewOrder(order.id)} 
+                      className="text-blue-600 hover:text-blue-900"
+                    >
+                      <Eye className="h-5 w-5" />
+                    </button>
+                    
+                    {order.status === 'Pending' && (
+                      <>
+                        <button 
+                          onClick={() => handleStatusChange(order.id, 'Confirmed')} 
+                          className="text-green-600 hover:text-green-900"
+                        >
+                          <CheckCircle className="h-5 w-5" />
+                        </button>
+                        <button 
+                          onClick={() => handleStatusChange(order.id, 'Cancelled')} 
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <XCircle className="h-5 w-5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -148,11 +164,19 @@ export default function StaffDashboard() {
                 filteredOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.orderNumber}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.member}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.date}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.items}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.total}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.orderNumber || `ORD-${order.id}`}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {order.member?.name || 'Guest User'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.items?.length || order.products?.length || 0}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      ${order.total?.toFixed(2) || '0.00'}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         order.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 

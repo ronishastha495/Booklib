@@ -4,45 +4,58 @@ import authService from '../services/authService';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [auth, setAuth] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [auth, setAuth] = useState({
+    user: null,
+    isAuthenticated: false,
+    loading: true
+  });
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const userData = await authService.getUser();
-        setAuth(userData);
-      } catch (error) {
-        console.error('Failed to load user:', error);
-        setAuth(null);
-      } finally {
-        setLoading(false);
-      }
+    const initializeAuth = () => {
+      const user = authService.getUser();
+      setAuth({
+        user,
+        isAuthenticated: !!user,
+        loading: false
+      });
     };
 
-    loadUser();
+    initializeAuth();
   }, []);
 
-  const login = async (email, password, role) => {
-    const response = await authService.login(email, password, role);
-    setAuth(await authService.getUser());
-    return response;
+  const login = async (email, password) => {
+    try {
+      const response = await authService.login(email, password);
+      const user = authService.getUser();
+      setAuth({
+        user,
+        isAuthenticated: true,
+        loading: false
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const logout = () => {
     authService.logout();
-    setAuth(null);
+    setAuth({
+      user: null,
+      isAuthenticated: false,
+      loading: false
+    });
   };
 
-  const value = {
-    auth,
-    loading,
-    login,
-    logout,
-    isAuthenticated: !!auth,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{
+      ...auth,
+      login,
+      logout
+    }}>
+      {!auth.loading && children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
