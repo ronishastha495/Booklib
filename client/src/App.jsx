@@ -13,17 +13,15 @@ import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import Home from './pages/Home';
 import ProtectedRoute from './components/ProtectedRoute';
-import { useEffect, useState } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
-import { CartProvider } from './contexts/CartContext';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import BookDetail from './pages/BookDetail';
 import BookList from './pages/BookList';
+import UserDashboard from './pages/UserDashboard';
 import BookForm from './components/admin/AddBookForm';
 import Cart from './pages/Cart';
 import Catalog from './pages/admin/Catalog';
 import { useAuth } from './contexts/AuthContext';
-import { OrderProvider } from './contexts/OrderContext'; // Add this
 import OrderHistory from './pages/OrderHistory';
 function App() {
   const [initializing, setInitializing] = useState(true);
@@ -68,7 +66,7 @@ function App() {
         <Toaster position="top-right" />
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegisterForm />} />
           <Route path="/books" element={<BookList />} />
@@ -84,7 +82,7 @@ function App() {
               element={
                 auth?.role?.toLowerCase() === 'admin' 
                   ? <Navigate to="/admindash" replace /> 
-                  : <Dashboard />
+                  : <UserDashboard />
               } 
             />
           </Route>

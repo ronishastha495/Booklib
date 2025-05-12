@@ -1,7 +1,7 @@
 import axios from 'axios';
 import authService from './authService';
 
-const API_URL = 'http://localhost:5259/api/Order';
+// const API_URL = 'http://localhost:5259/api/Order';
 
 const API_URL = 'http://localhost:5259/api';
 

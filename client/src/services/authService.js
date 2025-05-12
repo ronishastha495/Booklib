@@ -30,6 +30,7 @@ async login(email, password, role = 'Member') {
     const response = await axios.post(`${API_URL}/login`, { 
       email, 
       password, 
+      role
     });
     
     if (!response.data?.token) {
