@@ -1,9 +1,14 @@
 import React, { useContext, useState, useEffect } from "react";
-import { Search, Loader2, CheckCircle2, AlertCircle, Info, ChevronDown, ChevronUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, Loader2, CheckCircle2, AlertCircle, Info, ChevronDown, ChevronUp, LogOut } from "lucide-react";
 import { OrderContext } from '../../contexts/OrderContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'sonner';
 
 const StaffDashboard = () => {
   const { orders, setOrders, loading, error, fetchPendingOrders, getOrderById, handleProcessClaimCode, searchOrderByClaimCode } = useContext(OrderContext);
+  const { auth, logout } = useAuth();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [processing, setProcessing] = useState(false);
   const [processSuccess, setProcessSuccess] = useState(null);
@@ -65,6 +70,12 @@ const StaffDashboard = () => {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    toast.success("Logged out successfully");
+    navigate('/login');
+  };
+
   const toggleOrderExpand = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
@@ -89,7 +100,19 @@ const StaffDashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <h1 className="text-3xl font-bold mb-8">Staff Dashboard</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Staff Dashboard</h1>
+        {auth?.token && (
+          <button
+            onClick={handleLogout}
+            className="flex items-center px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+            title="Logout"
+          >
+            <LogOut className="mr-2" size={18} />
+            Logout
+          </button>
+        )}
+      </div>
 
       {/* Search Section */}
       <div className="relative mb-6">
