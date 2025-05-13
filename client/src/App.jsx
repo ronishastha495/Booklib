@@ -3,12 +3,11 @@ import { Toaster } from 'sonner';
 import { useEffect, useState } from 'react';
 
 // Contexts
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { OrderProvider } from './contexts/OrderContext';
 import { AnnouncementProvider } from './contexts/AnnouncementContext';
 import { WishlistProvider } from './contexts/WishlistContext';
-import Wishlist from './pages/Wishlist';
 
 // Pages & Components
 import Landing from './pages/Landing';
@@ -24,23 +23,24 @@ import UserDashboard from './pages/UserDashboard';
 import BookForm from './components/admin/AddBookForm';
 import Cart from './pages/Cart';
 import Catalog from './pages/admin/Catalog';
-import { useAuth } from './contexts/AuthContext';
 import OrderHistory from './pages/OrderHistory';
 import StaffDashboard from './pages/staff/StaffDashboard';
 import OrderHistoryPage from './pages/OrderHistoryPage';
 import ReviewFormPage from './pages/ReviewFormPage';
-
+import Wishlist from './pages/Wishlist';
 
 function App() {
   const [initializing, setInitializing] = useState(true);
-  const { auth, loading } = useAuth();
+  const { loading } = useAuth();
 
+  // Wait for auth to finish loading
   useEffect(() => {
     if (!loading) {
       setInitializing(false);
     }
   }, [loading]);
 
+  // Loading UI
   if (loading || initializing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -54,52 +54,60 @@ function App() {
 
   return (
     <ErrorBoundary>
-      
+      {/* Global Auth Context */}
+      <AuthProvider>
+        {/* Wishlist Context */}
         <WishlistProvider>
-      <CartProvider>
-        <OrderProvider>
-           <AnnouncementProvider>
+          {/* Cart Context */}
+          <CartProvider>
+            {/* Order Context */}
+            <OrderProvider>
+              {/* Announcement Context */}
+              <AnnouncementProvider>
+                
+                {/* Toast notifications */}
+                <Toaster position="top-right" />
 
-          <Toaster position="top-right" />
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<LoginForm />} />
-            <Route path="/register" element={<RegisterForm />} />
-            <Route path="/books" element={<BookList />} />
-            
-            {/* Protected Member routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/orders" element={<OrderHistory />} />
-              <Route path="/order/history" element={<OrderHistoryPage />} />
-              <Route path="/books/:id" element={<BookDetail />} />
-            <Route path="/books/:id/review" element={<ReviewFormPage />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/dashboard" element={<UserDashboard />} />
-               <Route path="/wishlist" element={<Wishlist />} />
-            </Route>
+                {/* App Routes */}
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/login" element={<LoginForm />} />
+                  <Route path="/register" element={<RegisterForm />} />
+                  <Route path="/books" element={<BookList />} />
 
-            {/* Staff routes */}
-            <Route element={<ProtectedRoute staffOnly />}>
-              <Route path="/staff" element={<StaffDashboard />} />
-            </Route>
+                  {/* Protected Member routes */}
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/orders" element={<OrderHistory />} />
+                    <Route path="/order/history" element={<OrderHistoryPage />} />
+                    <Route path="/books/:id" element={<BookDetail />} />
+                    <Route path="/books/:id/review" element={<ReviewFormPage />} />
+                    <Route path="/cart" element={<Cart />} />
+                    <Route path="/dashboard" element={<UserDashboard />} />
+                    <Route path="/wishlist" element={<Wishlist />} />
+                  </Route>
 
-            {/* Admin routes */}
-            <Route element={<ProtectedRoute adminOnly />}>
-              <Route path="/admindash/*" element={<AdminDashboard />} />
-              <Route path="/admin/books/add" element={<BookForm />} />
-              <Route path="/admin/catalog" element={<Catalog />} />
-            </Route>
+                  {/* Staff routes (restricted) */}
+                  <Route element={<ProtectedRoute staffOnly />}>
+                    <Route path="/staff" element={<StaffDashboard />} />
+                  </Route>
 
-            {/* Fallback route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-            </AnnouncementProvider>
+                  {/* Admin routes (restricted) */}
+                  <Route element={<ProtectedRoute adminOnly />}>
+                    <Route path="/admindash/*" element={<AdminDashboard />} />
+                    <Route path="/admin/books/add" element={<BookForm />} />
+                    <Route path="/admin/catalog" element={<Catalog />} />
+                  </Route>
 
-        </OrderProvider>
+                  {/* Fallback route */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
 
-      </CartProvider>
-      </WishlistProvider>
+              </AnnouncementProvider>
+            </OrderProvider>
+          </CartProvider>
+        </WishlistProvider>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }
