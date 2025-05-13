@@ -3,12 +3,8 @@ using Booklib.Models.Entities;
 
 namespace Booklib.Data
 {
-    public class AppDBContext : DbContext
+    public class AppDBContext(DbContextOptions<AppDBContext> options) : DbContext(options)
     {
-        public AppDBContext(DbContextOptions<AppDBContext> options) : base(options)
-        {
-        }
-
         public DbSet<User> User { get; set; }
         public DbSet<Book> Books { get; set; }
         public DbSet<Bookmark> Bookmarks { get; set; }

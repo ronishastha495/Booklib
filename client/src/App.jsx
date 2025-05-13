@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { OrderProvider } from './contexts/OrderContext';
-import { AnnouncementProvider } from './contexts/AnnouncementContext'; // ✅ IMPORT THIS
 
 // Pages & Components
 import Landing from './pages/Landing';
@@ -23,32 +22,18 @@ import BookForm from './components/admin/AddBookForm';
 import Cart from './pages/Cart';
 import Catalog from './pages/admin/Catalog';
 import { useAuth } from './contexts/AuthContext';
-import OrderHistoryPage from './pages/OrderHistoryPage';
+import OrderHistory from './pages/OrderHistory';
+import StaffDashboard from './pages/staff/StaffDashboard'
 
 function App() {
   const [initializing, setInitializing] = useState(true);
   const { auth, loading } = useAuth();
 
   useEffect(() => {
-    const checkInitialAuth = () => {
-      try {
-        console.log('App initialization - Auth status:', {
-          hasToken: !!auth?.token,
-          role: auth?.role || 'none',
-          hasUser: !!auth?.user,
-          userId: auth?.user?.id || 'none'
-        });
-      } catch (error) {
-        console.error('Initial auth check failed:', error);
-      } finally {
-        setInitializing(false);
-      }
-    };
-
     if (!loading) {
-      checkInitialAuth();
+      setInitializing(false);
     }
-  }, [auth, loading]);
+  }, [loading]);
 
   if (loading || initializing) {
     return (
@@ -65,51 +50,37 @@ function App() {
     <ErrorBoundary>
       <CartProvider>
         <OrderProvider>
-          <AnnouncementProvider> {/* ✅ WRAP THE APP HERE */}
-            <Toaster 
-              position="top-right" 
-              toastOptions={{
-                render: (data) => {
-                  const message = typeof data === 'object' && data !== null 
-                    ? JSON.stringify(data)
-                    : data;
-                  return <div>{message}</div>;
-                }
-              }}
-            />
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Landing />} />
-              <Route path="/login" element={<LoginForm />} />
-              <Route path="/register" element={<RegisterForm />} />
-              <Route path="/books" element={<BookList />} />
+          <Toaster position="top-right" />
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<LoginForm />} />
+            <Route path="/register" element={<RegisterForm />} />
+            <Route path="/books" element={<BookList />} />
+            
+            {/* Protected Member routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/orders" element={<OrderHistory />} />
+              <Route path="/books/:id" element={<BookDetail />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/dashboard" element={<UserDashboard />} />
+            </Route>
 
-              {/* Protected Member routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/orders" element={<OrderHistoryPage />} />
-                <Route path="/books/:id" element={<BookDetail />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route 
-                  path="/dashboard" 
-                  element={
-                    auth?.role?.toLowerCase() === 'admin' 
-                      ? <Navigate to="/admindash" replace /> 
-                      : <UserDashboard />
-                  } 
-                />
-              </Route>
+            {/* Staff routes */}
+            <Route element={<ProtectedRoute staffOnly />}>
+              <Route path="/staff" element={<StaffDashboard />} />
+            </Route>
 
-              {/* Admin routes */}
-              <Route element={<ProtectedRoute adminOnly />}>
-                <Route path="/admindash" element={<AdminDashboard />} />
-                <Route path="/admin/books/add" element={<BookForm />} />
-                <Route path="/admin/catalog" element={<Catalog />} />
-              </Route>
+            {/* Admin routes */}
+            <Route element={<ProtectedRoute adminOnly />}>
+              <Route path="/admindash/*" element={<AdminDashboard />} />
+              <Route path="/admin/books/add" element={<BookForm />} />
+              <Route path="/admin/catalog" element={<Catalog />} />
+            </Route>
 
-              {/* Fallback route */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </AnnouncementProvider>
+            {/* Fallback route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </OrderProvider>
       </CartProvider>
     </ErrorBoundary>
@@ -117,5 +88,3 @@ function App() {
 }
 
 export default App;
-
-

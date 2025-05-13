@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Library, Bell, Search, ChevronDown, Menu, LogOut
-} from 'e-react';
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import SidebarItem from '../../components/adminsidebar/SidebarItem';

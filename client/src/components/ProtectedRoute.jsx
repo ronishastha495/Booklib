@@ -23,17 +23,19 @@ const ProtectedRoute = ({ adminOnly = false, staffOnly = false }) => {
 
   const userRole = auth.role?.toLowerCase();
 
-  // For admin routes
+  // Admin-only access check
   if (adminOnly && userRole !== 'admin') {
     toast.error("Admin access required");
     return <Navigate to="/dashboard" replace />;
   }
 
-  // For staff routes
+  // Staff-only access check (admin also allowed)
   if (staffOnly && userRole !== 'staff' && userRole !== 'admin') {
     toast.error("Staff access required");
     return <Navigate to="/dashboard" replace />;
   }
+
+  // Allow access
   return <Outlet />;
 };
 

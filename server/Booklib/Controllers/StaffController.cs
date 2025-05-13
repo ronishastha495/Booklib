@@ -14,42 +14,85 @@ namespace Booklib.Controllers
     {
         private readonly AppDBContext _context = context;
         private readonly ILogger<StaffController> _logger = logger;
+[HttpGet("orders/{orderId}")]
+public async Task<ActionResult<OrderResponseDTO>> GetOrderById(string orderId)
+{
+    if (!Guid.TryParse(orderId, out Guid orderGuid))
+    {
+        return BadRequest("Invalid Order ID format");
+    }
 
-        [HttpGet("orders/pending")]
-        public async Task<ActionResult<IEnumerable<OrderResponseDTO>>> GetPendingOrders()
+    var order = await _context.Orders
+        .Include(o => o.Items)
+        .ThenInclude(i => i.Book)
+        .Include(o => o.User)
+        .FirstOrDefaultAsync(o => o.OrderId == orderGuid);
+
+    if (order == null)
+    {
+        return NotFound("Order not found");
+    }
+
+    var response = new OrderResponseDTO
+    {
+        OrderId = order.OrderId,
+        ClaimCode = order.ClaimCode,
+        Status = order.Status.ToString(),
+        SubTotal = order.SubTotal,
+        DiscountPercentage = order.DiscountPercentage,
+        FinalTotal = order.FinalTotal,
+        CreatedAt = order.CreatedAt,
+        UpdatedAt = order.UpdatedAt,
+        CancelledAt = order.CancelledAt,
+        CancellationReason = order.CancellationReason,
+        Items = order.Items.Select(item => new OrderItemResponseDTO
         {
-            var pendingOrders = await _context.Orders
-                .Include(o => o.Items)
-                .ThenInclude(i => i.Book)
-                .Include(o => o.User)
-                .Where(o => o.Status == OrderStatus.Pending)
-                .OrderByDescending(o => o.CreatedAt)
-                .ToListAsync();
+            BookId = item.BookId,
+            BookTitle = item.Book?.Title ?? "Unknown Book",
+            Quantity = item.Quantity,
+            UnitPrice = item.UnitPrice,
+            Subtotal = item.UnitPrice * item.Quantity
+        }).ToList()
+    };
 
-            var response = pendingOrders.Select(order => new OrderResponseDTO
-            {
-                OrderId = order.OrderId,
-                ClaimCode = order.ClaimCode,
-                Status = order.Status.ToString(),
-                SubTotal = order.SubTotal,
-                DiscountPercentage = order.DiscountPercentage,
-                FinalTotal = order.FinalTotal,
-                CreatedAt = order.CreatedAt,
-                UpdatedAt = order.UpdatedAt,
-                CancelledAt = order.CancelledAt,
-                CancellationReason = order.CancellationReason,
-                Items = order.Items.Select(item => new OrderItemResponseDTO
-                {
-                    BookId = item.BookId,
-                    BookTitle = item.Book?.Title ?? "Unknown Book",
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    Subtotal = item.UnitPrice * item.Quantity
-                }).ToList()
-            });
+    return Ok(response);
+}
+        [HttpGet("orders/pending")]
+public async Task<ActionResult<IEnumerable<OrderResponseDTO>>> GetPendingOrders()
+{
+    var allOrders = await _context.Orders
+        .Include(o => o.Items)
+        .ThenInclude(i => i.Book)
+        .Include(o => o.User)
+        .OrderByDescending(o => o.CreatedAt)
+        .ToListAsync(); // Remove the Where clause to include all orders
 
-            return Ok(response);
-        }
+    var response = allOrders.Select(order => new OrderResponseDTO
+    {
+        OrderId = order.OrderId,
+        ClaimCode = order.ClaimCode,
+        Status = order.Status.ToString(),
+        SubTotal = order.SubTotal,
+        DiscountPercentage = order.DiscountPercentage,
+        FinalTotal = order.FinalTotal,
+        CreatedAt = order.CreatedAt,
+        UpdatedAt = order.UpdatedAt,
+        CancelledAt = order.CancelledAt,
+        CancellationReason = order.CancellationReason,
+        UserId = order.User?.Id ?? Guid.Empty,
+        UserName = order.User != null ? $"{order.User.FirstName} {order.User.LastName}" : "Unknown",
+        Items = order.Items.Select(item => new OrderItemResponseDTO
+        {
+            BookId = item.BookId,
+            BookTitle = item.Book?.Title ?? "Unknown Book",
+            Quantity = item.Quantity,
+            UnitPrice = item.UnitPrice,
+            Subtotal = item.UnitPrice * item.Quantity
+        }).ToList()
+    });
+
+    return Ok(response);
+}
 
         [HttpPost("process-claim")]
         public async Task<ActionResult> ProcessClaimCode([FromBody] ProcessClaimRequest request)
@@ -108,4 +151,4 @@ namespace Booklib.Controllers
         public required string ClaimCode { get; set; }
     }
 
-}
+}   

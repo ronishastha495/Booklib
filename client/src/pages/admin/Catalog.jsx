@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Eye, Edit, Trash2, Percent, Search, Save, X } from 'react-feather';
 import { Toaster } from 'sonner';
 import { useBookContext } from '../../contexts/BookContext';
-import { useDiscounts } from '../../contexts/DiscountContext';
-import BookService from '../../services/bookService';
+import { useNavigate } from 'react-router-dom';
 import AddBookForm from '../../components/admin/AddBookForm';
 
 const Catalog = () => {
@@ -21,28 +20,23 @@ const Catalog = () => {
     setPagination,
   } = useBookContext();
 
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All Genres');
-  const [newBook, setNewBook] = useState({
-    title: '',
-    author: '',
-    isbn: '',
-    genre: '',
-    publisher: '',
-    publishedDate: '',
-    language: '',
-    format: '',
-    price: '',
-    stockQuantity: 0,
-    isBestseller: false,
-    isAwardWinner: false,
-    isComingSoon: false,
-    onSale: false,
-    description: '',
-  });
   const [editingBookId, setEditingBookId] = useState(null);
   const [editBookData, setEditBookData] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Initialize pagination with pageSize of 5
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageSize: 5 }));
+    fetchFilteredBooks({
+      page: 1,
+      pageSize: 5,
+      search: searchTerm,
+      genre: selectedGenre !== 'All Genres' ? selectedGenre : undefined,
+    });
+  }, []);
 
   // Handle pagination
   const handlePageChange = (newPage) => {
@@ -50,7 +44,7 @@ const Catalog = () => {
       setPagination((prev) => ({ ...prev, page: newPage }));
       fetchFilteredBooks({
         page: newPage,
-        pageSize: pagination.pageSize,
+        pageSize: 5,
         search: searchTerm,
         genre: selectedGenre !== 'All Genres' ? selectedGenre : undefined,
       });
@@ -60,16 +54,17 @@ const Catalog = () => {
   // Handle search and filter
   useEffect(() => {
     const timer = setTimeout(() => {
+      setPagination((prev) => ({ ...prev, page: 1 }));
       fetchFilteredBooks({
         page: 1,
-        pageSize: pagination.pageSize,
+        pageSize: 5,
         search: searchTerm,
         genre: selectedGenre !== 'All Genres' ? selectedGenre : undefined,
       });
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, selectedGenre]);
+  }, [searchTerm, selectedGenre, fetchFilteredBooks]);
 
   // Handle edit input changes
   const handleEditInputChange = (e) => {
@@ -78,34 +73,6 @@ const Catalog = () => {
       ...prev,
       [name]: type === 'checkbox' || type === 'radio' ? checked : value,
     }));
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await createBook(newBook);
-      setNewBook({
-        title: '',
-        author: '',
-        isbn: '',
-        genre: '',
-        publisher: '',
-        publishedDate: '',
-        language: '',
-        format: '',
-        price: '',
-        stockQuantity: 0,
-        isBestseller: false,
-        isAwardWinner: false,
-        isComingSoon: false,
-        onSale: false,
-        description: '',
-      });
-      setIsAddModalOpen(false);
-    } catch (err) {
-      console.error('Error creating book:', err);
-    }
   };
 
   // Handle edit submission
@@ -165,6 +132,11 @@ const Catalog = () => {
         console.error('Error deleting book:', err);
       }
     }
+  };
+
+  // Navigate to /discount
+  const handleCreateDiscount = () => {
+    navigate('/discount');
   };
 
   if (loading && !books.length) return <div className="text-center py-10">Loading books...</div>;
@@ -230,8 +202,8 @@ const Catalog = () => {
               </tr>
             </thead>
             <tbody>
-              {displayedBooks.map((book, index) => (
-                <tr key={book.bookId || index} className={`border-b border-stone-100 ${editingBookId === book.bookId ? 'bg-amber-50' : 'hover:bg-stone-50'}`}>
+              {displayedBooks.map((book) => (
+                <tr key={book.bookId || `book-${Math.random()}`} className={`border-b border-stone-100 ${editingBookId === book.bookId ? 'bg-amber-50' : 'hover:bg-stone-50'}`}>
                   {editingBookId === book.bookId ? (
                     <td colSpan="10" className="py-4 px-4">
                       <form onSubmit={handleEditSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -334,7 +306,7 @@ const Catalog = () => {
                     </td>
                   ) : (
                     <>
-                      <td className="py-3 px-4 font-medium text-stone-800">{index + 1}</td>
+                      <td className="py-3 px-4 font-medium text-stone-800">{book.bookId || 'N/A'}</td>
                       <td className="py-3 px-4 font-medium text-stone-800">{book.title}</td>
                       <td className="py-3 px-4 text-stone-600">{book.author}</td>
                       <td className="py-3 px-4 text-stone-600">{book.isbn}</td>
@@ -388,14 +360,12 @@ const Catalog = () => {
           </p>
           <div className="flex items-center gap-2">
             <button
-              className="px-3 py-1 border border-stone-300 rounded-md text-stone-600 hover:bg-stone-50 disabled:opacity-50 Cyclone"
+              className="px-3 py-1 border border-stone-300 rounded-md text-stone-600 hover:bg-stone-50 disabled:opacity-50"
               disabled={pagination.page === 1}
               onClick={() => handlePageChange(pagination.page - 1)}
             >
               Previous
             </button>
-
- Font Awesome Icon - fa-chevron-left
 
             {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
               let pageNum;
@@ -451,16 +421,15 @@ const Catalog = () => {
       <AddBookForm
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSubmit={handleSubmit}
-        newBook={newBook}
-        setNewBook={setNewBook}
-        loading={loading}
       />
 
       <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-semibold text-stone-800">Active Discounts</h3>
-          <button className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600">
+          <button
+            className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600"
+            onClick={() => navigate('/discount')}
+          >
             <Percent className="h-5 w-5" />
             <span>Create Discount</span>
           </button>
@@ -529,7 +498,7 @@ const Catalog = () => {
             <div className="flex items-center justify-between mt-4">
               <p className="text-xs text-stone-500">Ongoing</p>
               <div className="flex gap-2">
-                <button className="p-1 rounded-md hover:bg-stone-ندیک">
+                <button className="p-1 rounded-md hover:bg-stone-100">
                   <Edit className="h-4 w-4 text-amber-500" />
                 </button>
                 <button className="p-1 rounded-md hover:bg-stone-100">

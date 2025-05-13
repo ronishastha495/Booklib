@@ -11,18 +11,11 @@ using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public class AuthController(AppDBContext context, JwtService jwtService, ILogger<AuthController> logger) : ControllerBase
 {
-    private readonly AppDBContext _context;
-    private readonly JwtService _jwtService;
-    private readonly ILogger<AuthController> _logger;
-
-    public AuthController(AppDBContext context, JwtService jwtService, ILogger<AuthController> logger)
-    {
-        _context = context;
-        _jwtService = jwtService;
-        _logger = logger;
-    }
+    private readonly AppDBContext _context = context;
+    private readonly JwtService _jwtService = jwtService;
+    private readonly ILogger<AuthController> _logger = logger;
 
     [HttpPost("register")]
     public async Task<IActionResult> Register(UserRegisterDto dto)

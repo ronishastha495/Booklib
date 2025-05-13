@@ -119,7 +119,7 @@ const UserDashboard = () => {
               <ShoppingCart size={18} /> Cart
             </Link>
             <Link
-              to="/orders"
+              to="/order/history"
               className="flex items-center gap-3 px-3 py-2 rounded hover:bg-indigo-50 text-gray-700 font-medium transition"
             >
               <Package size={18} /> Orders
