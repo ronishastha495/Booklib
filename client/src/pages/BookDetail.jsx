@@ -5,6 +5,7 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import Reviews from './Reviews';
+import { useWishlist } from '../contexts/WishlistContext';
 
 import reviewService from '../services/reviewService';
 
@@ -15,10 +16,6 @@ const getBookmarks = () => {
   } catch {
     return [];
   }
-};
-
-const setBookmarks = (bookmarks) => {
-  localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
 };
 
 const formatDateTime = (date) => {
@@ -33,6 +30,7 @@ const BookDetail = () => {
   const location = useLocation();
   const { addToCart } = useCart();
   const { auth } = useAuth();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist(); // Moved inside component function
   const [book, setBook] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -100,23 +98,24 @@ const BookDetail = () => {
     fetchData();
   }, [id, auth]);
 
-  // Bookmark logic
-  useEffect(() => {
-    setIsBookmarked(getBookmarks().includes(id));
-  }, [id]);
+ useEffect(() => {
+  if (auth?.user?.email) {
+    setIsBookmarked(isInWishlist(id));
+  }
+}, [id, auth, isInWishlist]);
+ const toggleBookmark = () => {
+  if (!auth?.user?.email) {
+    toast.error('Please login to bookmark items');
+    navigate('/login', { state: { from: `/books/${id}` } });
+    return;
+  }
 
-  const toggleBookmark = () => {
-    const bookmarks = getBookmarks();
-    let updated;
-    if (isBookmarked) {
-      updated = bookmarks.filter((bookId) => bookId !== id);
-    } else {
-      updated = [...bookmarks, id];
-    }
-    setBookmarks(updated);
-    setIsBookmarked(!isBookmarked);
-  };
-
+  if (isInWishlist(id)) {
+    removeFromWishlist(id);
+  } else {
+    addToWishlist(id);
+  }
+};
   const handleAddToCart = () => {
     if (!auth?.user?.email) {
       toast.error('Please login to add items to cart');

@@ -7,6 +7,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { OrderProvider } from './contexts/OrderContext';
 import { AnnouncementProvider } from './contexts/AnnouncementContext';
+import { WishlistProvider } from './contexts/WishlistContext';
+import Wishlist from './pages/Wishlist';
 
 // Pages & Components
 import Landing from './pages/Landing';
@@ -52,6 +54,8 @@ function App() {
 
   return (
     <ErrorBoundary>
+      
+        <WishlistProvider>
       <CartProvider>
         <OrderProvider>
            <AnnouncementProvider>
@@ -72,6 +76,7 @@ function App() {
             <Route path="/books/:id/review" element={<ReviewFormPage />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/dashboard" element={<UserDashboard />} />
+               <Route path="/wishlist" element={<Wishlist />} />
             </Route>
 
             {/* Staff routes */}
@@ -94,6 +99,7 @@ function App() {
         </OrderProvider>
 
       </CartProvider>
+      </WishlistProvider>
     </ErrorBoundary>
   );
 }
