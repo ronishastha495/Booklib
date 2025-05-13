@@ -120,7 +120,7 @@ const authService = {
     
     // Return cached user if profile endpoint doesn't exist
     try {
-      const response = await api.get(`${API_URL}/profile`);
+      const response = await api.get(`${API_URL}/me`);
       console.log('User profile fetched from API:', response.data);
       
       localStorage.setItem('user', JSON.stringify(response.data));

@@ -30,8 +30,9 @@ builder.Services.AddCors(options =>
 
 // Add db context with PostgreSQL
 builder.Services.AddDbContext<AppDBContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultCon nection")));
 
+// Add EmailService to the dependency injection container
 builder.Services.AddScoped<EmailService>();
 // Add JWT service
 builder.Services.AddScoped<JwtService>();

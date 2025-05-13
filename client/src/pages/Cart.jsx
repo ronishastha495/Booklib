@@ -44,66 +44,67 @@ const Cart = () => {
         return () => clearInterval(timer);
     }, []);
 
- const handlePlaceOrder = async () => {
-    if (!auth?.user) {
-        toast.error("Please login to place an order");
-        navigate('/login', { state: { from: '/cart' } });
-        return;
-    }
+    const handlePlaceOrder = async () => {
+        if (!auth?.user) {
+            toast.error("Please login to place an order");
+            navigate('/login', { state: { from: '/cart' } });
+            return;
+        }
 
-    if (cartItems.length === 0) {
-        toast.error("Your cart is empty");
-        return;
-    }
+        if (cartItems.length === 0) {
+            toast.error("Your cart is empty");
+            return;
+        }
 
-    setIsProcessing(true);
-    try {
-        // Debug logging
-        console.log('Cart Items:', cartItems);
-        
-        const orderData = {
-            items: cartItems.map(item => ({
-                bookId: item.id,
-                quantity: item.quantity
-            }))
-        };
+        setIsProcessing(true);
+        try {
+            const orderData = {
+                items: cartItems.map(item => ({
+                    bookId: item.id,
+                    quantity: item.quantity
+                }))
+            };
 
-        // Debug logging
-        console.log('Sending order data:', JSON.stringify(orderData, null, 2));
+            const response = await orderService.createOrder(orderData);
+            
+            clearCart();
+            // Updated success message with claim code and email notification
+            toast.success(
+                <div className="space-y-2">
+                    <p className="font-semibold">Order placed successfully!</p>
+                    <div className="bg-green-50 p-2 rounded">
+                        <p className="text-sm">Claim Code:</p>
+                        <p className="font-mono font-bold">{response.claimCode}</p>
+                    </div>
+                    <p className="text-sm text-green-600">
+                        ✉️ Confirmation email sent to {auth.user.email}
+                    </p>
+                </div>,
+                {
+                    duration: 5000 // Show for 5 seconds
+                }
+            );
 
-        const response = await orderService.createOrder(orderData);
-        
-        console.log('Order response:', response);
+            setOrderPlaced(true);
+            
+            // Navigate to confirmation page after a short delay
+            setTimeout(() => {
+                navigate(`/order-confirmation/${response.orderId}`);
+            }, 3000);
 
-        clearCart();
-        toast.success(
-            <div>
-                Order placed successfully!
-                <br />
-                Your claim code: <strong>{response.claimCode}</strong>
-                <br />
-                Check your email for details.
-            </div>
-        );
+        } catch (error) {
+            console.error('Order error:', error);
+            toast.error(
+                <div>
+                    <p className="font-semibold">Order Failed</p>
+                    <p className="text-sm">{error.response?.data || 'Failed to place order'}</p>
+                </div>
+            );
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
-        setOrderPlaced(true);
-        
-        setTimeout(() => {
-            navigate(`/order-confirmation/${response.orderId}`);
-        }, 3000);
-
-    } catch (error) {
-        console.error('Order error details:', {
-            error: error,
-            response: error.response?.data,
-            status: error.response?.status,
-            message: error.message
-        });
-        toast.error(error.response?.data || 'Failed to place order');
-    } finally {
-        setIsProcessing(false);
-    }
-};
     return (
         <div className="min-h-screen bg-gray-100">
             {/* DateTime Header */}
@@ -250,6 +251,14 @@ const Cart = () => {
                                     >
                                         {isProcessing ? 'Processing...' : 'Place Order'}
                                     </button>
+                                    
+                                    {/* Add email notification info */}
+                                    <p className="text-sm text-gray-600 text-center">
+                                        Order confirmation will be sent to:
+                                        <br />
+                                        <span className="font-medium">{auth?.user?.email}</span>
+                                    </p>
+                                    
                                     <Link
                                         to="/books"
                                         className="block text-center text-blue-600 hover:text-blue-800 text-sm"
@@ -257,12 +266,18 @@ const Cart = () => {
                                         Continue Shopping
                                     </Link>
                                 </div>
+                                {orderPlaced && (
+                                    <div className="mt-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
+                                        <div className="flex items-center space-x-2 mb-2">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            <p className="font-medium">Order Confirmed!</p>
+                                        </div>
+                                        <p className="text-sm">Check your email for order details and claim code.</p>
+                                    </div>
+                                )}
                             </div>
-                            {orderPlaced && (
-                                <div className="mt-4 p-3 bg-green-100 text-green-700 rounded-lg text-center">
-                                    Order placed successfully! Check your email for details.
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>
