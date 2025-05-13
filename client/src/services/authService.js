@@ -111,29 +111,34 @@ logout() {
   },
 
   // Get user profile from API
-  async getUserProfile() {
+ async getUserProfile() {
+  try {
+    const token = this.getToken();
+    
+    if (!token) {
+      console.log('No authentication token found');
+      return this.getUser();
+    }
+    
+    // Return cached user if profile endpoint doesn't exist
     try {
-      const token = this.getToken();
-      
-      if (!token) {
-        console.error('No authentication token found');
-        return this.getUser(); // Fall back to localStorage
-      }
-      
       const response = await api.get(`${API_URL}/profile`);
       console.log('User profile fetched from API:', response.data);
       
-      // Update localStorage with the latest data
       localStorage.setItem('user', JSON.stringify(response.data));
-      
       return response.data;
     } catch (error) {
-      console.error('Error fetching user profile:', error.response?.data || error.message);
-      // Fall back to cached user data
-      return this.getUser();
+      if (error.response?.status === 404) {
+        console.log('Profile endpoint not found, using cached data');
+        return this.getUser();
+      }
+      throw error;
     }
-  },
-
+  } catch (error) {
+    console.error('Error in getUserProfile:', error);
+    return this.getUser();
+  }
+},
   // Check if user is authenticated
   isAuthenticated() {
     const token = localStorage.getItem('token');

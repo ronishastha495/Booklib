@@ -11,8 +11,8 @@ export const OrderProvider = ({ children }) => {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await orderService.getOrders(); // Update this
-      setOrders(response.data); // Make sure to use response.data
+      const response = await orderService.getOrders();
+      setOrders(response.data);
     } catch (error) {
       console.error('Failed to load orders:', error);
     } finally {
@@ -20,7 +20,7 @@ export const OrderProvider = ({ children }) => {
     }
   };
 
-  const placeOrder = async (orderData) => { // Update parameters
+  const placeOrder = async (orderData) => {
     try {
       const newOrder = await orderService.createOrder(orderData);
       setOrders((prev) => [newOrder, ...prev]);
@@ -57,7 +57,7 @@ export const OrderProvider = ({ children }) => {
         fetchOrders,
         placeOrder,
         cancelUserOrder,
-        getOrderById: orderService.getOrderById, // Use service method directly
+        getOrderById: orderService.getOrderById,
       }}
     >
       {children}
@@ -65,4 +65,4 @@ export const OrderProvider = ({ children }) => {
   );
 };
 
-export default OrderProvider; // Add this export
+export default OrderProvider;

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { OrderProvider } from './contexts/OrderContext';
+import { AnnouncementProvider } from './contexts/AnnouncementContext'; // ✅ IMPORT THIS
 
 // Pages & Components
 import Landing from './pages/Landing';
@@ -22,7 +23,8 @@ import BookForm from './components/admin/AddBookForm';
 import Cart from './pages/Cart';
 import Catalog from './pages/admin/Catalog';
 import { useAuth } from './contexts/AuthContext';
-import OrderHistory from './pages/OrderHistory';
+import OrderHistoryPage from './pages/OrderHistoryPage';
+
 function App() {
   const [initializing, setInitializing] = useState(true);
   const { auth, loading } = useAuth();
@@ -63,40 +65,51 @@ function App() {
     <ErrorBoundary>
       <CartProvider>
         <OrderProvider>
-        <Toaster position="top-right" />
-        <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<LoginForm />} />
-          <Route path="/register" element={<RegisterForm />} />
-          <Route path="/books" element={<BookList />} />
-          
-          {/* Protected Member routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/orders" element={<OrderHistory />} />
-
-            <Route path="/books/:id" element={<BookDetail />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route 
-              path="/dashboard" 
-              element={
-                auth?.role?.toLowerCase() === 'admin' 
-                  ? <Navigate to="/admindash" replace /> 
-                  : <UserDashboard />
-              } 
+          <AnnouncementProvider> {/* ✅ WRAP THE APP HERE */}
+            <Toaster 
+              position="top-right" 
+              toastOptions={{
+                render: (data) => {
+                  const message = typeof data === 'object' && data !== null 
+                    ? JSON.stringify(data)
+                    : data;
+                  return <div>{message}</div>;
+                }
+              }}
             />
-          </Route>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<LoginForm />} />
+              <Route path="/register" element={<RegisterForm />} />
+              <Route path="/books" element={<BookList />} />
 
-          {/* Admin routes */}
-          <Route element={<ProtectedRoute adminOnly />}>
-            <Route path="/admindash" element={<AdminDashboard />} />
-            <Route path="/admin/books/add" element={<BookForm />} />
-            <Route path="/admin/catalog" element={<Catalog />} />
-          </Route>
+              {/* Protected Member routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/orders" element={<OrderHistoryPage />} />
+                <Route path="/books/:id" element={<BookDetail />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route 
+                  path="/dashboard" 
+                  element={
+                    auth?.role?.toLowerCase() === 'admin' 
+                      ? <Navigate to="/admindash" replace /> 
+                      : <UserDashboard />
+                  } 
+                />
+              </Route>
 
-          {/* Fallback route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+              {/* Admin routes */}
+              <Route element={<ProtectedRoute adminOnly />}>
+                <Route path="/admindash" element={<AdminDashboard />} />
+                <Route path="/admin/books/add" element={<BookForm />} />
+                <Route path="/admin/catalog" element={<Catalog />} />
+              </Route>
+
+              {/* Fallback route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AnnouncementProvider>
         </OrderProvider>
       </CartProvider>
     </ErrorBoundary>
@@ -104,3 +117,5 @@ function App() {
 }
 
 export default App;
+
+

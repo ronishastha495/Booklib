@@ -1,40 +1,25 @@
-import axios from 'axios';
-import authService from './authService';
-
-// const API_URL = 'http://localhost:5259/api/Order';
-
-const API_URL = 'http://localhost:5259/api';
+import api from './api';
 
 const orderService = {
-  createOrder: async (orderData) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`${API_URL}/Order`, orderData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Order creation failed:', error);
-      throw error;
-    }
+  // Get all orders for the current user
+  getOrders: async () => {
+    return await api.get('/Order');
   },
-
-  getOrder: async (orderId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/Order/${orderId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Failed to get order:', error);
-      throw error;
-    }
+  
+  // Get a specific order by ID
+  getOrderById: async (id) => {
+    return await api.get(`/Order/${id}`);
+  },
+  
+  // Create a new order
+  createOrder: async (orderData) => {
+    const response = await api.post('/Order', orderData);
+    return response.data;
+  },
+  
+  // Cancel an order
+  cancelOrder: async (id, reason) => {
+    return await api.post(`/Order/${id}/cancel`, { reason });
   }
 };
 

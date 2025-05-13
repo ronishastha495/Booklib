@@ -5,6 +5,7 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import BookService from "../services/bookService";
 import { toast } from 'sonner';
+import { useAnnouncementContext } from '../contexts/AnnouncementContext';
 
 // Constants
 const genres = ["All", "Fiction", "Non-Fiction", "Science", "Technology"];
@@ -60,6 +61,7 @@ const BookList = () => {
     const [showDialog, setShowDialog] = useState(false);
     const [currentDateTime, setCurrentDateTime] = useState(formatDateTime());
     const currentUser = auth?.user?.email || 'Guest';
+
 
     // Update date/time every second
     useEffect(() => {
@@ -216,6 +218,13 @@ const BookList = () => {
                 break;
         }
     };
+    const { announcements: activeAnnouncements, loading: announcementsLoading } = useAnnouncementContext();
+    const now = new Date();
+const filteredAnnouncements = activeAnnouncements?.filter(announcement => 
+  announcement.isActive && 
+  new Date(announcement.startDate) <= now && 
+  new Date(announcement.endDate) >= now
+) || [];
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -292,6 +301,27 @@ const BookList = () => {
                     </div>
                 </div>
             </header>
+                          {/* Announcements Section */}
+{!announcementsLoading && filteredAnnouncements.length > 0 && (
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <h3 className="text-lg font-medium text-blue-800 mb-2">Announcements</h3>
+      <div className="space-y-2">
+        {filteredAnnouncements.map(announcement => (
+          <div key={announcement.announcementId} className="flex items-start">
+            <span className="flex-shrink-0 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded mr-2">
+              {announcement.category}
+            </span>
+            <p className="text-sm text-blue-700">
+              <strong>{announcement.title}:</strong> {announcement.content}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+)}
+
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
