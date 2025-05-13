@@ -50,30 +50,24 @@ const LoginForm = () => {
         // Clear any existing guest cart data
         localStorage.removeItem('bookshopCart_guest');
         
-      // Navigate based on role from the response
-      const userRole = response.role?.toLowerCase();
-      switch (userRole) {
-        case 'admin':
-          navigate('/admindash', { replace: true });
-          break;
-        case 'staff':
-          navigate('/staff', { replace: true });
-          break;
-        default:
-          const redirectTo = location.state?.from || '/dashboard';
-          navigate(redirectTo, { replace: true });
-      }
+        // Navigate based on role
+        if (userData.role?.toLowerCase() === 'admin') {
+            navigate('/admindash', { replace: true });
+        } else {
+            const redirectTo = location.state?.from || '/dashboard';
+            navigate(redirectTo, { replace: true });
+        }
     } catch (err) {
-      console.error('Login error:', err);
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        'Failed to login. Please check your credentials and try again.'
-      );
+        console.error('Login error:', err);
+        setError(
+            err.response?.data?.message ||
+            err.response?.data?.error ||
+            'Failed to login. Please check your credentials and try again.'
+        );
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
 
   // Rest of your JSX remains the same
   return (
