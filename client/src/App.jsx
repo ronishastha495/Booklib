@@ -7,6 +7,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { OrderProvider } from './contexts/OrderContext';
 import { AnnouncementProvider } from './contexts/AnnouncementContext';
+import { WishlistProvider } from './contexts/WishlistContext';
+import Wishlist from './pages/Wishlist';
 
 // Pages & Components
 import Landing from './pages/Landing';
@@ -24,8 +26,10 @@ import Cart from './pages/Cart';
 import Catalog from './pages/admin/Catalog';
 import { useAuth } from './contexts/AuthContext';
 import OrderHistory from './pages/OrderHistory';
-import StaffDashboard from './pages/staff/StaffDashboard'
+import StaffDashboard from './pages/staff/StaffDashboard';
 import OrderHistoryPage from './pages/OrderHistoryPage';
+import ReviewFormPage from './pages/ReviewFormPage';
+
 
 function App() {
   const [initializing, setInitializing] = useState(true);
@@ -50,9 +54,12 @@ function App() {
 
   return (
     <ErrorBoundary>
+      
+        <WishlistProvider>
       <CartProvider>
         <OrderProvider>
-          <AnnouncementProvider>
+           <AnnouncementProvider>
+
           <Toaster position="top-right" />
           <Routes>
             {/* Public routes */}
@@ -64,10 +71,12 @@ function App() {
             {/* Protected Member routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/orders" element={<OrderHistory />} />
-              <Route path="/books/:id" element={<BookDetail />} />
               <Route path="/order/history" element={<OrderHistoryPage />} />
+              <Route path="/books/:id" element={<BookDetail />} />
+            <Route path="/books/:id/review" element={<ReviewFormPage />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/dashboard" element={<UserDashboard />} />
+               <Route path="/wishlist" element={<Wishlist />} />
             </Route>
 
             {/* Staff routes */}
@@ -85,9 +94,12 @@ function App() {
             {/* Fallback route */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          </AnnouncementProvider>
+            </AnnouncementProvider>
+
         </OrderProvider>
+
       </CartProvider>
+      </WishlistProvider>
     </ErrorBoundary>
   );
 }

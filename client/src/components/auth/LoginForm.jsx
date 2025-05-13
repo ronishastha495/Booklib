@@ -48,16 +48,16 @@ const LoginForm = () => {
           navigate(redirectTo, { replace: true });
       }
     } catch (err) {
-      console.error('Login error:', err);
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        'Failed to login. Please check your credentials and try again.'
-      );
+        console.error('Login error:', err);
+        setError(
+            err.response?.data?.message ||
+            err.response?.data?.error ||
+            'Failed to login. Please check your credentials and try again.'
+        );
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
