@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import orderService from '../services/orderService';
+
 const OrderContext = createContext();
 
 export const useOrder = () => useContext(OrderContext);
@@ -7,31 +8,41 @@ export const useOrder = () => useContext(OrderContext);
 export const OrderProvider = ({ children }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const fetchOrders = async () => {
+  const fetchPendingOrders = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const response = await orderService.getOrders(); // Update this
-      setOrders(response.data); // Make sure to use response.data
-    } catch (error) {
-      console.error('Failed to load orders:', error);
+      const response = await orderService.getPendingOrders();
+      setOrders(response);
+    } catch (err) {
+      console.error('Failed to load pending orders:', err);
+      setError(err.message || 'Failed to load pending orders');
     } finally {
       setLoading(false);
     }
   };
 
-  const placeOrder = async (orderData) => { // Update parameters
+  const placeOrder = async (orderData) => {
+    setLoading(true);
+    setError(null);
     try {
-      const newOrder = await orderService.createOrder(orderData);
-      setOrders((prev) => [newOrder, ...prev]);
-      return newOrder;
-    } catch (error) {
-      console.error('Order creation failed:', error);
-      throw error;
+      const response = await orderService.createOrder(orderData);
+      setOrders((prev) => [response, ...prev]);
+      return response;
+    } catch (err) {
+      console.error('Order creation failed:', err);
+      setError(err.message || 'Order creation failed');
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
   const cancelUserOrder = async (id, reason) => {
+    setLoading(true);
+    setError(null);
     try {
       await orderService.cancelOrder(id, reason);
       setOrders((prev) =>
@@ -39,25 +50,97 @@ export const OrderProvider = ({ children }) => {
           order.orderId === id ? { ...order, status: 'Cancelled' } : order
         )
       );
-    } catch (error) {
-      console.error('Order cancellation failed:', error);
-      throw error;
+    } catch (err) {
+      console.error('Order cancellation failed:', err);
+      setError(err.message || 'Order cancellation failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+const handleProcessClaimCode = async (claimCode) => {
+  setLoading(true);
+  setError(null);
+  try {
+    const response = await orderService.processClaimCode(claimCode);
+    await fetchPendingOrders(); // Refresh the order list
+    return response;
+  } catch (err) {
+    console.error('Failed to process claim code:', err);
+    setError(err.response?.data?.message || 'Failed to process claim code');
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const getOrderById = async (id) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await orderService.getOrderById(id);
+      return response;
+    } catch (err) {
+      console.error('Failed to fetch order:', err);
+      setError(err.message || 'Failed to fetch order');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const searchOrderByClaimCode = async (claimCode) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await orderService.getOrderByClaimCode(claimCode);
+      // Add or update the order in the orders state
+      setOrders((prev) => {
+        const existingIndex = prev.findIndex((o) => o.claimCode === claimCode);
+        if (existingIndex !== -1) {
+          // Update existing order
+          const updatedOrders = [...prev];
+          updatedOrders[existingIndex] = response;
+          return updatedOrders;
+        }
+        // Add new order to the top
+        return [response, ...prev];
+      });
+      return response;
+    } catch (err) {
+      console.error('Failed to search order by claim code:', err);
+      setError(err.message || 'Order not found for the given claim code');
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchOrders();
+    fetchPendingOrders();
+    
+    // Setup WebSocket for real-time updates
+    const ws = orderService.setupOrderUpdates((newOrder) => {
+      setOrders((prev) => [newOrder, ...prev]);
+    });
+
+    return () => ws.close();
   }, []);
 
   return (
     <OrderContext.Provider
       value={{
         orders,
+        setOrders,
         loading,
-        fetchOrders,
+        error,
+        fetchPendingOrders,
         placeOrder,
         cancelUserOrder,
-        getOrderById: orderService.getOrderById, // Use service method directly
+        handleProcessClaimCode,
+        getOrderById,
+        searchOrderByClaimCode,
       }}
     >
       {children}
@@ -65,4 +148,4 @@ export const OrderProvider = ({ children }) => {
   );
 };
 
-export default OrderProvider; // Add this export
+export default OrderContext;  

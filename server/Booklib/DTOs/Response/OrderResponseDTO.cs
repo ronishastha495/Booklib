@@ -4,7 +4,9 @@ namespace Booklib.DTOs.Response;
 
 public class OrderResponseDTO
     {
-        public Guid OrderId { get; set; }
+    internal UserBasicInfoDTO User;
+
+    public Guid OrderId { get; set; }
         public string ClaimCode { get; set; }
         public string Status { get; set; }
         public decimal SubTotal { get; set; }
@@ -15,6 +17,9 @@ public class OrderResponseDTO
         public DateTime? UpdatedAt { get; set; }
         public DateTime? CancelledAt { get; set; }
         public string? CancellationReason { get; set; }
+
+        public Guid UserId { get; set; } // Add UserId
+        public string UserName { get; set; } // Add UserName
     }
 
     public class OrderItemResponseDTO

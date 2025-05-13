@@ -3,7 +3,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 
-const ProtectedRoute = ({ adminOnly = false }) => {
+const ProtectedRoute = ({ adminOnly = false, staffOnly = false }) => {
   const location = useLocation();
   const { auth, loading } = useAuth();
 
@@ -21,9 +21,17 @@ const ProtectedRoute = ({ adminOnly = false }) => {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
-  // For admin routes, check if user is admin
-  if (adminOnly && auth.role?.toLowerCase() !== 'admin') {
+  const userRole = auth.role?.toLowerCase();
+
+  // For admin routes
+  if (adminOnly && userRole !== 'admin') {
     toast.error("Admin access required");
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // For staff routes
+  if (staffOnly && userRole !== 'staff' && userRole !== 'admin') {
+    toast.error("Staff access required");
     return <Navigate to="/dashboard" replace />;
   }
 

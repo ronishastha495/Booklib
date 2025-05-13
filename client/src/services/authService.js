@@ -92,45 +92,38 @@ logout() {
     
     console.log('User logged out, localStorage cleared');
 },
-  // Get current user from localStorage
+  async getUserProfile() {
+    try {
+      // Instead of making an API call, just return the cached user data
+      const userData = this.getUser();
+      if (!userData) {
+        throw new Error('No user data found');
+      }
+      return userData;
+    } catch (error) {
+      console.error('Error getting user profile:', error.message);
+      throw error;
+    }
+  },
+
+  // Modify getUser to include role information
   getUser() {
     try {
       const user = localStorage.getItem('user');
+      const role = localStorage.getItem('userRole');
+      
       if (!user) {
-        console.log('No user found in localStorage');
         return null;
       }
       
       const userData = JSON.parse(user);
-      console.log('User data retrieved from localStorage:', userData);
-      return userData;
+      return {
+        ...userData,
+        role: role || userData.role || 'Member'
+      };
     } catch (error) {
       console.error('Error parsing user data from localStorage:', error);
       return null;
-    }
-  },
-
-  // Get user profile from API
-  async getUserProfile() {
-    try {
-      const token = this.getToken();
-      
-      if (!token) {
-        console.error('No authentication token found');
-        return this.getUser(); // Fall back to localStorage
-      }
-      
-      const response = await api.get(`${API_URL}/profile`);
-      console.log('User profile fetched from API:', response.data);
-      
-      // Update localStorage with the latest data
-      localStorage.setItem('user', JSON.stringify(response.data));
-      
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching user profile:', error.response?.data || error.message);
-      // Fall back to cached user data
-      return this.getUser();
     }
   },
 
