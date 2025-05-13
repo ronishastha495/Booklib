@@ -27,6 +27,7 @@ builder.Services.AddCors(options =>
     });
 });
 
+
 // Add db context with PostgreSQL
 builder.Services.AddDbContext<AppDBContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));

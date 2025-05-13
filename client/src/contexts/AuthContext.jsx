@@ -55,81 +55,87 @@ export const AuthProvider = ({ children }) => {
     }
   }, [auth?.user, navigate]);
 
- const handleLogin = async (email, password) => {
-    try {
-        const response = await authService.login(email, password);
-        
-        if (!response?.token) {
-            throw new Error('Login failed: No token received');
-        }
-
-        const authData = {
-            token: response.token,
-            user: {
-                id: response.id,
-                email: response.email, // Make sure this is always set
-                firstName: response.firstName,
-                lastName: response.lastName,
-                role: response.role,
-                // Remove username field to avoid confusion
-            },
-            role: response.role
-        };
-        
-        // Save auth data
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(authData.user));
-        localStorage.setItem('userRole', response.role);
-        
-        setAuth(authData);
-
-        // Clear any existing guest cart data
-        localStorage.removeItem('bookshopCart_guest');
-
-        // Navigate based on role
-        if (response.role?.toLowerCase() === 'admin') {
-            navigate('/admindash', { replace: true });
-        } else {
-            const redirectTo = location.state?.from || '/dashboard';
-            navigate(redirectTo, { replace: true });
-        }
-
-        return response;
-    } catch (error) {
-        console.error('Login error:', error);
-        toast.error(error.response?.data?.message || 'Login failed');
-        throw error;
+// Update your handleLogin function in AuthProvider.js
+const handleLogin = async (email, password) => {
+  try {
+    setLoading(true);
+    const response = await authService.login(email, password);
+    
+    if (!response?.token) {
+      throw new Error('Login failed: No token received');
     }
-};
-  useEffect(() => {
-    const validateAuth = async () => {
-      if (!auth?.token) {
-        setLoading(false);
-        return;
-      }
 
-      try {
-        const userData = await authService.getUserProfile();
-        if (userData) {
+    const authData = {
+      token: response.token,
+      user: {
+        id: response.id,
+        email: response.email || email,
+        firstName: response.firstName,
+        lastName: response.lastName,
+        role: response.role,
+      },
+      role: response.role
+    };
+    
+    // Save auth data
+    localStorage.setItem('token', response.token);
+    localStorage.setItem('user', JSON.stringify(authData.user));
+    localStorage.setItem('userRole', response.role);
+    
+    setAuth(authData);
+
+    // Navigate based on role
+    const userRole = response.role?.toLowerCase();
+    switch (userRole) {
+      case 'admin':
+        navigate('/admindash');
+        break;
+      case 'staff':
+        navigate('/staff');
+        break;
+      default:
+        navigate('/dashboard');
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Login error:', error);
+    toast.error(error.response?.data?.message || 'Login failed');
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
+ useEffect(() => {
+  const validateAuth = async () => {
+    if (!auth?.token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const userData = authService.getUser();
+      if (userData) {
+        // Only update if data has changed
+        if (JSON.stringify(auth.user) !== JSON.stringify(userData)) {
           setAuth(prev => ({
             ...prev,
             user: userData
           }));
-        } else {
-          // If no user data, logout
-          handleLogout();
         }
-      } catch (error) {
-        console.error('Auth validation failed:', error);
+      } else {
         handleLogout();
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Auth validation failed:', error);
+      handleLogout();
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    validateAuth();
-  }, [handleLogout]);
-
+  validateAuth();
+}, [auth?.token]); // Only depend on token changes
   return (
     <AuthContext.Provider value={{
       auth,
