@@ -5,37 +5,21 @@ import { useAuth } from '../../contexts/AuthContext';
 const LoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth(); // Remove auth from here since we don't need it
+  const { login } = useAuth();
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Check if user is already logged in - only runs once on mount
-  // useEffect(() => {
-  //   let mounted = true;
-
-  //   const checkAuthStatus = () => {
-  //     if (!mounted) return;
-  //     if (auth?.token) {
-  //       const redirect = location.state?.from || '/dashboard';
-  //       navigate(redirect, { replace: true });
-  //     }
-  //   };
-
-  //   checkAuthStatus();
-  //   return () => {
-  //     mounted = false;
-  //   };
-  // }, [auth, navigate, location.state]);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -46,11 +30,11 @@ const LoginForm = () => {
 
     try {
       const response = await login(formData.email, formData.password);
-      
-      // Clear any existing guest cart data
+
+      // Clear any guest cart data
       localStorage.removeItem('bookshopCart_guest');
-      
-      // Navigate based on role from the response
+
+      // Navigate based on user role
       const userRole = response.role?.toLowerCase();
       switch (userRole) {
         case 'admin':
@@ -70,26 +54,20 @@ const LoginForm = () => {
         err.response?.data?.error ||
         'Failed to login. Please check your credentials and try again.'
       );
-      console.error('Login error:', err);
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        'Failed to login. Please check your credentials and try again.'
-      );
     } finally {
-      setLoading(false);
       setLoading(false);
     }
   };
-  };
 
-  // Rest of your JSX remains the same
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in to your account
+          </h2>
         </div>
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <input type="hidden" name="remember" defaultValue="true" />
           <div className="rounded-md shadow-sm -space-y-px">
@@ -106,8 +84,8 @@ const LoginForm = () => {
                 value={formData.email}
                 onChange={handleChange}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300
-                                    placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none
-                                    focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                           placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none
+                           focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Email address"
               />
             </div>
@@ -124,15 +102,18 @@ const LoginForm = () => {
                 value={formData.password}
                 onChange={handleChange}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300
-                                    placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none
-                                    focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                           placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none
+                           focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
               />
             </div>
           </div>
 
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded" role="alert">
+            <div
+              className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"
+              role="alert"
+            >
               <span className="block sm:inline">{error}</span>
             </div>
           )}
@@ -142,9 +123,9 @@ const LoginForm = () => {
               type="submit"
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent
-                                text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700
-                                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
-                                disabled:bg-indigo-300"
+                         text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700
+                         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
+                         disabled:bg-indigo-300"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -152,7 +133,10 @@ const LoginForm = () => {
 
           <div className="flex items-center justify-between">
             <div className="text-sm">
-              <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+              <Link
+                to="/register"
+                className="font-medium text-indigo-600 hover:text-indigo-500"
+              >
                 Don't have an account? Register
               </Link>
             </div>
