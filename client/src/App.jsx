@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { OrderProvider } from './contexts/OrderContext';
+import { AnnouncementProvider } from './contexts/AnnouncementContext'; // ✅ IMPORT THIS
 
 // Pages & Components
 import Landing from './pages/Landing';
@@ -58,37 +59,50 @@ function App() {
     <ErrorBoundary>
       <CartProvider>
         <OrderProvider>
-          <Toaster position="top-right" />
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<LoginForm />} />
-            <Route path="/register" element={<RegisterForm />} />
-            <Route path="/books" element={<BookList />} />
-            
-            {/* Protected Member routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/orders" element={<OrderHistory />} />
-              <Route path="/books/:id" element={<BookDetail />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/dashboard" element={<UserDashboard />} />
-            </Route>
+          <AnnouncementProvider> {/* ✅ WRAP THE APP HERE */}
+            <Toaster 
+              position="top-right" 
+              toastOptions={{
+                render: (data) => {
+                  const message = typeof data === 'object' && data !== null 
+                    ? JSON.stringify(data)
+                    : data;
+                  return <div>{message}</div>;
+                }
+              }}
+            />
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<LoginForm />} />
+              <Route path="/register" element={<RegisterForm />} />
+              <Route path="/books" element={<BookList />} />
 
-            {/* Staff routes */}
-            <Route element={<ProtectedRoute staffOnly />}>
-              <Route path="/staff" element={<StaffDashboard />} />
-            </Route>
+              {/* Protected Member routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/orders" element={<OrderHistoryPage />} />
+                <Route path="/books/:id" element={<BookDetail />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route 
+                  path="/dashboard" 
+                  element={
+                    auth?.role?.toLowerCase() === 'admin' 
+                      ? <Navigate to="/admindash" replace /> 
+                      : <UserDashboard />
+                  } 
+                />
+              </Route>
 
-            {/* Admin routes */}
-            <Route element={<ProtectedRoute adminOnly />}>
-              <Route path="/admindash/*" element={<AdminDashboard />} />
-              <Route path="/admin/books/add" element={<BookForm />} />
-              <Route path="/admin/catalog" element={<Catalog />} />
-            </Route>
+              {/* Admin routes */}
+              <Route element={<ProtectedRoute adminOnly />}>
+                <Route path="/admindash" element={<AdminDashboard />} />
+                <Route path="/admin/books/add" element={<BookForm />} />
+                <Route path="/admin/catalog" element={<Catalog />} />
+              </Route>
 
-            {/* Fallback route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
         </OrderProvider>
       </CartProvider>
     </ErrorBoundary>
@@ -96,3 +110,5 @@ function App() {
 }
 
 export default App;
+
+

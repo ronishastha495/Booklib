@@ -138,6 +138,7 @@ const handleProcessClaimCode = async (claimCode) => {
         fetchPendingOrders,
         placeOrder,
         cancelUserOrder,
+        getOrderById: orderService.getOrderById,
         handleProcessClaimCode,
         getOrderById,
         searchOrderByClaimCode,
@@ -148,4 +149,4 @@ const handleProcessClaimCode = async (claimCode) => {
   );
 };
 
-export default OrderContext;  
+export default OrderProvider;

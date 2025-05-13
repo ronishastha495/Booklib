@@ -13,6 +13,24 @@ const LoginForm = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Check if user is already logged in - only runs once on mount
+  // useEffect(() => {
+  //   let mounted = true;
+
+  //   const checkAuthStatus = () => {
+  //     if (!mounted) return;
+  //     if (auth?.token) {
+  //       const redirect = location.state?.from || '/dashboard';
+  //       navigate(redirect, { replace: true });
+  //     }
+  //   };
+
+  //   checkAuthStatus();
+  //   return () => {
+  //     mounted = false;
+  //   };
+  // }, [auth, navigate, location.state]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -52,9 +70,17 @@ const LoginForm = () => {
         err.response?.data?.error ||
         'Failed to login. Please check your credentials and try again.'
       );
+      console.error('Login error:', err);
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        'Failed to login. Please check your credentials and try again.'
+      );
     } finally {
       setLoading(false);
+      setLoading(false);
     }
+  };
   };
 
   // Rest of your JSX remains the same

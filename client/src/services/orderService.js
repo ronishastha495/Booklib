@@ -11,6 +11,17 @@ const getAuthHeaders = () => {
 };
 
 const orderService = {
+  // Get all orders for the current user
+  getOrders: async () => {
+    return await api.get('/Order');
+  },
+  
+  // Get a specific order by ID
+  getOrderById: async (id) => {
+    return await api.get(`/Order/${id}`);
+  },
+  
+  // Create a new order
   createOrder: async (orderData) => {
     try {
       const response = await axios.post(`${API_URL}/Order`, orderData, {
