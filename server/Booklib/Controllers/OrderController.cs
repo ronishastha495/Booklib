@@ -163,23 +163,24 @@ public async Task<ActionResult<OrderResponseDTO>> CreateOrder([FromBody] OrderRe
                 }).ToList()
             };
         }
+private decimal CalculateDiscountPercentage(Guid userId, int itemCount)
+{
+    decimal discount = 0;
 
-        private decimal CalculateDiscountPercentage(Guid userId, int itemCount)
-        {
-            decimal discount = 0;
+    // Apply 5% discount for orders with 5 or more books
+    if (itemCount >= 5)
+        discount += 5;
 
-            // Apply 5% discount for orders with 5 or more books
-            if (itemCount >= 5)
-                discount += 5;
+    // Check for loyalty discount (10% stackable after every 10 successful orders)
+    var successfulOrdersCount = _context.Orders
+        .Count(o => o.UserId == userId && o.Status == OrderStatus.Completed);
+    
+    // Apply stackable 10% discount for every 10 successful orders
+    // Integer division by 10 gives us the number of complete sets of 10 orders
+    discount += (successfulOrdersCount / 10) * 10;
 
-            // Add 10% discount for every 10 successful orders
-            var successfulOrdersCount = _context.Orders
-                .Count(o => o.UserId == userId && o.Status == OrderStatus.Completed);
-
-            discount += (successfulOrdersCount / 10) * 10;
-
-            return discount;
-        }
+    return discount;
+}
 
         private Guid GetCurrentUserId()
         {

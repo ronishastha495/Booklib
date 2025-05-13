@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { FaEye, FaClock, FaCheckCircle, FaTimesCircle, FaBoxOpen } from 'react-icons/fa';
+import { FaEye, FaClock, FaCheckCircle, FaTimesCircle, FaBoxOpen, FaStar } from 'react-icons/fa';
 import { toast } from 'sonner';
 import api from '../services/api';
 import OrderDetailsModal from '../pages/OrderDetailsModal';
+import reviewService from '../services/reviewService';
 
 const OrderHistoryPage = () => {
   const { auth } = useAuth();
@@ -13,6 +14,7 @@ const OrderHistoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [userReviews, setUserReviews] = useState([]); // Initialize as empty array
 
   useEffect(() => {
     if (!auth?.token) {
@@ -20,26 +22,33 @@ const OrderHistoryPage = () => {
       return;
     }
 
-    const fetchOrders = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/Order');
-        setOrders(response.data);
+        // Fetch orders
+        const orderResponse = await api.get('/Order');
+        setOrders(orderResponse.data);
+        
+        // Fetch user's reviews - ensure it's an array
+        const reviewResponse = await reviewService.getUserReviews();
+        setUserReviews(Array.isArray(reviewResponse) ? reviewResponse : []);
       } catch (error) {
-        console.error('Failed to fetch orders:', error);
-        toast.error('Failed to load order history');
+        console.error('Failed to fetch data:', error);
+        toast.error('Failed to load order history or reviews');
       } finally {
         setLoading(false);
       }
     };
-    
-    // Only fetch if orders is empty
-    if (orders.length === 0) {
-      fetchOrders();
-    }
-  }, [auth, navigate, orders.length]);
 
-  // Calculate total quantity for an order
+    fetchData();
+  }, [auth, navigate]); // Remove the conditional fetching based on array lengths
+
+  // Check if user has reviewed a book
+  const hasReviewedBook = (bookId) => {
+    // Make sure userReviews is an array before calling .some()
+    return Array.isArray(userReviews) && userReviews.some((review) => review.bookId === bookId);
+  };
+
   const calculateTotalQuantity = (items) => {
     return items.reduce((sum, item) => sum + item.quantity, 0);
   };
@@ -89,50 +98,33 @@ const OrderHistoryPage = () => {
   };
 
   const handleCancelOrder = async (orderId) => {
-    // Ask for confirmation before cancelling
     if (!window.confirm('Are you sure you want to cancel this order?')) {
-      return; // User clicked "Cancel" in the confirmation dialog
+      return;
     }
-    
     try {
-      // Send cancellation request to API with cancellation reason as plain string
-      // FIX: Pass the reason as a plain string, not an object
       await api.post(`/Order/${orderId}/cancel`, "User requested cancellation", {
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' },
       });
-      
-      // Update the local state to reflect the cancellation
-      setOrders(orders.map(order => 
-        order.orderId === orderId ? { ...order, status: 'Cancelled' } : order
-      ));
-      
+      setOrders(orders.map((order) => (order.orderId === orderId ? { ...order, status: 'Cancelled' } : order)));
       toast.success('Order cancelled successfully');
     } catch (error) {
       console.error('Failed to cancel order:', error);
-      // Make sure we're not passing an object directly to toast
-      toast.error(typeof error.response?.data === 'string' 
-        ? error.response.data 
-        : 'Failed to cancel order');
+      toast.error(typeof error.response?.data === 'string' ? error.response.data : 'Failed to cancel order');
     }
   };
 
-  // Format the items display text properly
+  const handleReviewBook = (bookId) => {
+    navigate(`/books/${bookId}?review=true`);
+  };
+
   const formatItemsText = (items) => {
     const totalQuantity = calculateTotalQuantity(items);
     const uniqueItemCount = items.length;
-    
     if (uniqueItemCount === 1) {
       const item = items[0];
-      if (item.quantity === 1) {
-        return '1 item';
-      } else {
-        return `${item.quantity} ${item.bookTitle}`;
-      }
-    } else {
-      return `${totalQuantity} items (${uniqueItemCount} titles)`;
+      return item.quantity === 1 ? '1 item' : `${item.quantity} ${item.bookTitle}`;
     }
+    return `${totalQuantity} items (${uniqueItemCount} titles)`;
   };
 
   if (loading) {
@@ -172,46 +164,47 @@ const OrderHistoryPage = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Order #
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Items
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order #</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {orders.map((order) => (
                   <tr key={order.orderId} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {order.claimCode}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(order.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatItemsText(order.items)}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.claimCode}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(order.createdAt)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {order.items.map((item) => (
+                        <div key={item.bookId} className="flex items-center justify-between mb-2">
+                          <span>{item.quantity} x {item.bookTitle}</span>
+                          {order.status.toLowerCase() === 'completed' && (
+  <button
+    onClick={() => navigate(`/books/${item.bookId}/review`, { 
+      state: { orderId: order.orderId } 
+    })}
+    disabled={hasReviewedBook(item.bookId, order.orderId)}
+    className={`ml-2 text-yellow-600 hover:text-yellow-800 ${
+      hasReviewedBook(item.bookId, order.orderId) ? 'opacity-50 cursor-not-allowed' : ''
+    }`}
+    title={hasReviewedBook(item.bookId, order.orderId) ? 'Already Reviewed This Purchase' : 'Write a Review'}
+  >
+    <FaStar className="h-5 w-5" />
+  </button>
+
+                          )}
+                        </div>
+                      ))}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       ₹{order.finalTotal.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="mr-2">
-                          {getStatusIcon(order.status)}
-                        </div>
+                        <div className="mr-2">{getStatusIcon(order.status)}</div>
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(order.status)}`}>
                           {order.status}
                         </span>
@@ -246,10 +239,7 @@ const OrderHistoryPage = () => {
       </div>
 
       {isModalOpen && selectedOrder && (
-        <OrderDetailsModal
-          order={selectedOrder}
-          onClose={() => setIsModalOpen(false)}
-        />
+        <OrderDetailsModal order={selectedOrder} onClose={() => setIsModalOpen(false)} />
       )}
     </div>
   );
