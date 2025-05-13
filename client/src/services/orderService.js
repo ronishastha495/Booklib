@@ -11,17 +11,31 @@ const getAuthHeaders = () => {
 };
 
 const orderService = {
-  // Get all orders for the current user
   getOrders: async () => {
-    return await api.get('/Order');
+    try {
+      const response = await axios.get(`${API_URL}/Order`, {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get orders:', error);
+      throw error;
+    }
   },
   
-  // Get a specific order by ID
+
   getOrderById: async (id) => {
-    return await api.get(`/Order/${id}`);
+    try {
+      const response = await axios.get(`${API_URL}/Order/${id}`, {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get order by ID:', error);
+      throw error;
+    }
   },
-  
-  // Create a new order
+
   createOrder: async (orderData) => {
     try {
       const response = await axios.post(`${API_URL}/Order`, orderData, {
@@ -30,30 +44,6 @@ const orderService = {
       return response.data;
     } catch (error) {
       console.error('Order creation failed:', error);
-      throw error;
-    }
-  },
-
-  getOrder: async (orderId) => {
-    try {
-      const response = await axios.get(`${API_URL}/Order/${orderId}`, {
-        headers: getAuthHeaders()
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Failed to get order:', error);
-      throw error;
-    }
-  },
-
-  getUserOrders: async () => {
-    try {
-      const response = await axios.get(`${API_URL}/Order`, {
-        headers: getAuthHeaders()
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Failed to get user orders:', error);
       throw error;
     }
   },
@@ -84,14 +74,14 @@ const orderService = {
     }
   },
 
-  getOrderById: async (orderId) => {
+  getOrderByClaimCode: async (claimCode) => {
     try {
-      const response = await axios.get(`${API_URL}/staff/orders/${orderId}`, {
+      const response = await axios.get(`${API_URL}/staff/orders/${claimCode}`, {
         headers: getAuthHeaders()
       });
       return response.data;
     } catch (error) {
-      console.error('Failed to get order by ID:', error);
+      console.error('Failed to get order by claim code:', error);
       throw error;
     }
   },
@@ -110,17 +100,87 @@ const orderService = {
     }
   },
 
-  // New method for real-time updates
-  setupOrderUpdates: (callback) => {
+  getNotifications: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/Notification`, {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get notifications:', error);
+      throw error;
+    }
+  },
+
+  markNotificationAsRead: async (notificationId) => {
+    try {
+      const response = await axios.post(
+        `${API_URL}/Notification/${notificationId}/mark-read`,
+        {},
+        { headers: getAuthHeaders() }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+      throw error;
+    }
+  },
+
+setupOrderUpdates: (callback) => {
     const ws = new WebSocket('ws://localhost:5259/ws/orders');
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'NEW_ORDER') {
-        callback(data.order);
-      }
+    
+    ws.onopen = () => {
+        console.log('Connected to orders WebSocket');
     };
+    
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    };
+    
+    ws.onclose = () => {
+        console.log('Disconnected from orders WebSocket');
+    };
+    
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'NEW_ORDER') {
+                callback(data.order);
+            }
+        } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
+        }
+    };
+    
     return ws;
-  }
+},
+
+setupNotificationUpdates: (callback) => {
+  const token = localStorage.getItem('token');
+  const ws = new WebSocket('ws://localhost:5259/ws/notifications');
+  
+  ws.onopen = () => {
+    console.log('Notifications WebSocket Connected');
+    ws.send(JSON.stringify({ type: 'auth', token }));
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === 'NEW_NOTIFICATION') {
+        callback(data.notification);
+      }
+    } catch (error) {
+      console.error('Error processing WebSocket message:', error);
+    }
+  };
+
+  ws.onerror = (error) => {
+    console.error('WebSocket Error:', error);
+  };
+
+  return ws;
+}
 };
 
 export default orderService;
