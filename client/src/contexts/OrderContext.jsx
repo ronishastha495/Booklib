@@ -3,6 +3,8 @@ import orderService from '../services/orderService';
 
 const OrderContext = createContext();
 
+export { OrderContext };
+
 export const useOrder = () => useContext(OrderContext);
 
 export const OrderProvider = ({ children }) => {
@@ -138,7 +140,6 @@ const handleProcessClaimCode = async (claimCode) => {
         fetchPendingOrders,
         placeOrder,
         cancelUserOrder,
-        getOrderById: orderService.getOrderById,
         handleProcessClaimCode,
         getOrderById,
         searchOrderByClaimCode,

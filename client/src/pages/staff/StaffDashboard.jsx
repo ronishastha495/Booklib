@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from "react";
 import { Search, Loader2, CheckCircle2, AlertCircle, Info, ChevronDown, ChevronUp } from "lucide-react";
-import OrderContext from '../../contexts/OrderContext';
+import { OrderContext } from '../../contexts/OrderContext';
 
 const StaffDashboard = () => {
   const { orders, setOrders, loading, error, fetchPendingOrders, getOrderById, handleProcessClaimCode, searchOrderByClaimCode } = useContext(OrderContext);
