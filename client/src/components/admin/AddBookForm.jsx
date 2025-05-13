@@ -1,15 +1,149 @@
 import React from 'react';
-import { Coffee, X } from 'react-feather';
+import { X } from 'react-feather';
+import { useBookContext } from '../../contexts/BookContext';
+import { toast } from 'sonner';
 
-const AddBookForm = ({ isOpen, onClose, onSubmit, newBook, setNewBook, loading }) => {
+const AddBookForm = ({ isOpen, onClose }) => {
+  const { createBook } = useBookContext();
+  const [loading, setLoading] = React.useState(false);
+  const [newBook, setNewBook] = React.useState({
+    title: '',
+    author: '',
+    isbn: '',
+    genre: '',
+    publisher: '',
+    publishedDate: '',
+    language: '',
+    format: '',
+    price: '',
+    stockQuantity: '',
+    isBestseller: false,
+    onSale: false,
+    discountPrice: '',
+    discountEndDate: '',
+    description: '',
+    imageUrl: '',
+    imageFile: null
+  });
+
   if (!isOpen) return null;
+
+  const validateBookData = (bookData) => {
+    const requiredFields = ['title', 'author', 'isbn', 'genre', 'price', 'stockQuantity'];
+    const missingFields = requiredFields.filter((field) => !bookData[field]);
+
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+    }
+
+    if (bookData.price && isNaN(parseFloat(bookData.price))) {
+      throw new Error('Price must be a valid number');
+    }
+
+    if (!bookData.imageFile && !bookData.imageUrl) {
+      throw new Error('Book cover image is required');
+    }
+
+    return true;
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setNewBook((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' || type === 'radio' ? checked : value,
+      [name]: type === 'checkbox' || type === 'radio' ? value === 'true' : value,
     }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validImageTypes.includes(file.type)) {
+      toast.error('Please select a valid image file (JPEG, PNG, or GIF)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image file size must be less than 5MB');
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+
+    setNewBook((prev) => ({
+      ...prev,
+      imageFile: file,
+      imageUrl: previewUrl
+    }));
+  };
+
+  const uploadImage = async (file) => {
+    // Simulate file upload (replace with actual upload logic, e.g., Firebase, AWS S3)
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(URL.createObjectURL(file)); // Temporary for demo
+      }, 1000);
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      validateBookData(newBook);
+      setLoading(true);
+
+      let imageUrl = newBook.imageUrl;
+
+      if (newBook.imageFile) {
+        imageUrl = await uploadImage(newBook.imageFile);
+      }
+
+      const formattedBook = {
+        ...newBook,
+        publishedDate: newBook.publishedDate ? new Date(newBook.publishedDate).toISOString() : null,
+        discountEndDate: newBook.discountEndDate ? new Date(newBook.discountEndDate).toISOString() : null,
+        price: parseFloat(newBook.price),
+        stockQuantity: parseInt(newBook.stockQuantity),
+        discountPrice: newBook.discountPrice ? parseFloat(newBook.discountPrice) : null,
+        imageUrl
+      };
+
+      await createBook(formattedBook);
+
+      if (newBook.imageUrl && newBook.imageFile) {
+        URL.revokeObjectURL(newBook.imageUrl);
+      }
+
+      setNewBook({
+        title: '',
+        author: '',
+        isbn: '',
+        genre: '',
+        publisher: '',
+        publishedDate: '',
+        language: '',
+        format: '',
+        price: '',
+        stockQuantity: '',
+        isBestseller: false,
+        onSale: false,
+        discountPrice: '',
+        discountEndDate: '',
+        description: '',
+        imageUrl: '',
+        imageFile: null
+      });
+
+      onClose();
+      toast.success('Book created successfully!');
+      window.location.reload(); // Trigger full page reload
+    } catch (error) {
+      toast.error(error.message || 'Failed to create book');
+      console.error('Form submission error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -21,7 +155,7 @@ const AddBookForm = ({ isOpen, onClose, onSubmit, newBook, setNewBook, loading }
             <X className="h-5 w-5 text-stone-600" />
           </button>
         </div>
-        <form onSubmit={onSubmit}>
+        <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-stone-700 font-medium mb-2">Title*</label>
@@ -169,9 +303,10 @@ const AddBookForm = ({ isOpen, onClose, onSubmit, newBook, setNewBook, loading }
                   <input
                     type="radio"
                     name="isBestseller"
+                    value="true"
                     className="h-4 w-4 text-amber-500 focus:ring-amber-500"
-                    checked={newBook.isBestseller}
-                    onChange={() => setNewBook((prev) => ({ ...prev, isBestseller: true }))}
+                    checked={newBook.isBestseller === true}
+                    onChange={handleInputChange}
                   />
                   <span className="ml-2 text-stone-600">Yes</span>
                 </label>
@@ -179,9 +314,10 @@ const AddBookForm = ({ isOpen, onClose, onSubmit, newBook, setNewBook, loading }
                   <input
                     type="radio"
                     name="isBestseller"
+                    value="false"
                     className="h-4 w-4 text-amber-500 focus:ring-amber-500"
-                    checked={!newBook.isBestseller}
-                    onChange={() => setNewBook((prev) => ({ ...prev, isBestseller: false }))}
+                    checked={newBook.isBestseller === false}
+                    onChange={handleInputChange}
                   />
                   <span className="ml-2 text-stone-600">No</span>
                 </label>
@@ -194,9 +330,10 @@ const AddBookForm = ({ isOpen, onClose, onSubmit, newBook, setNewBook, loading }
                   <input
                     type="radio"
                     name="onSale"
+                    value="true"
                     className="h-4 w-4 text-amber-500 focus:ring-amber-500"
-                    checked={newBook.onSale}
-                    onChange={() => setNewBook((prev) => ({ ...prev, onSale: true }))}
+                    checked={newBook.onSale === true}
+                    onChange={handleInputChange}
                   />
                   <span className="ml-2 text-stone-600">Yes</span>
                 </label>
@@ -204,9 +341,10 @@ const AddBookForm = ({ isOpen, onClose, onSubmit, newBook, setNewBook, loading }
                   <input
                     type="radio"
                     name="onSale"
+                    value="false"
                     className="h-4 w-4 text-amber-500 focus:ring-amber-500"
-                    checked={!newBook.onSale}
-                    onChange={() => setNewBook((prev) => ({ ...prev, onSale: false }))}
+                    checked={newBook.onSale === false}
+                    onChange={handleInputChange}
                   />
                   <span className="ml-2 text-stone-600">No</span>
                 </label>
@@ -236,26 +374,54 @@ const AddBookForm = ({ isOpen, onClose, onSubmit, newBook, setNewBook, loading }
               />
             </div>
             <div className="md:col-span-2 lg:col-span-3">
-              <label className="block text-stone-700 font-medium mb-2">Book Cover Image</label>
+              <label className="block text-stone-700 font-medium mb-2">Book Cover Image*</label>
               <div className="flex items-center justify-center w-full">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-stone-300 border-dashed rounded-lg cursor-pointer bg-stone-50 hover:bg-stone-100">
+                <label
+                  htmlFor="imageFile"
+                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-stone-300 border-dashed rounded-lg cursor-pointer bg-stone-50 hover:bg-amber-50 hover:border-amber-500 transition-colors duration-200"
+                >
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Coffee className="w-8 h-8 mb-3 text-stone-400" />
-                    <p className="mb-2 text-sm text-stone-500">
+                    <svg
+                      className="w-8 h-8 mb-3 text-amber-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M7 16V8m0 0l-4 4m4-4l4 4m6-4v12m-4-2l4-4m-4 4l-4-4"
+                      />
+                    </svg>
+                    <p className="mb-2 text-sm text-stone-600">
                       <span className="font-semibold">Click to upload</span> or drag and drop
                     </p>
-                    <p className="text-xs text-stone-500">SVG, PNG, JPG or WEBP (MAX. 800x400px)</p>
+                    <p className="text-xs text-stone-500">JPEG, PNG, GIF (Max. 5MB)</p>
                   </div>
                   <input
-                    id="dropzone-file"
+                    id="imageFile"
                     type="file"
+                    accept="image/*"
                     className="hidden"
-                    onChange={(e) => {
-                      // Handle file upload logic here
-                    }}
+                    onChange={handleImageChange}
+                    required
                   />
                 </label>
               </div>
+              {newBook.imageUrl && (
+                <div className="mt-4">
+                  <p className="text-stone-600 font-medium mb-2">Preview:</p>
+                  <div className="flex justify-center">
+                    <img
+                      src={newBook.imageUrl}
+                      alt="Book cover preview"
+                      className="h-48 w-auto object-cover rounded-lg border border-stone-200 shadow-sm"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             <div className="md:col-span-2 lg:col-span-3">
               <label className="block text-stone-700 font-medium mb-2">Description</label>

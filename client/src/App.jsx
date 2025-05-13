@@ -27,6 +27,14 @@ function App() {
   const [initializing, setInitializing] = useState(true);
   const { auth, loading } = useAuth();
 
+
+  const notify = () => {
+    toast('This is a quick message!', {
+      id: 'only-one-toast', // ensures single message box
+      duration: 3000,       // quick timeout (2 seconds)
+    });
+  };
+
   useEffect(() => {
     const checkInitialAuth = () => {
       try {
