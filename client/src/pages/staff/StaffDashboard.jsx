@@ -165,29 +165,31 @@ const StaffDashboard = () => {
                   <div>
                     <h3 className="font-semibold">Order #{order?.orderId || "N/A"}</h3>
                     <span className="inline-block mt-1 px-2 py-1 text-xs font-medium rounded"
-                      style={{
-                        backgroundColor: order?.status === "Pending" ? "#fefcbf" : "#d1fae5",
-                        color: order?.status === "Pending" ? "#854d0e" : "#065f46"
-                      }}>
-                      {order?.status || "Unknown"}
-                    </span>
+  style={{
+    backgroundColor: order?.status === "Pending" ? "#fefcbf" : 
+                   order?.status === "Completed" ? "#d1fae5" : "#e5e7eb",
+    color: order?.status === "Pending" ? "#854d0e" : 
+           order?.status === "Completed" ? "#065f46" : "#4b5563"
+  }}>
+  {order?.status || "Unknown"}
+</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm">
                       Claim Code: <span className="font-mono font-semibold">{order?.claimCode || "N/A"}</span>
                     </span>
                     <button
-                      onClick={() => handleFulfillOrder(order?.orderId)}
-                      disabled={processing || order?.status === "Completed"}
-                      className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400 flex items-center"
-                    >
-                      {processing ? (
-                        <>
-                          <Loader2 className="animate-spin mr-1" size={14} />
-                          Processing...
-                        </>
-                      ) : "Fulfill Order"}
-                    </button>
+  onClick={() => handleFulfillOrder(order?.orderId)}
+  disabled={processing || order?.status === "Completed"}
+  className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400 flex items-center"
+>
+  {processing ? (
+    <>
+      <Loader2 className="animate-spin mr-1" size={14} />
+      Processing...
+    </>
+  ) : order?.status === "Completed" ? "Order Fulfilled" : "Fulfill Order"}
+</button>
                     <button 
                       onClick={() => toggleOrderExpand(order?.orderId)}
                       className="p-1 text-gray-500 hover:text-gray-700 focus:outline-none"
