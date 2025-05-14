@@ -2,37 +2,46 @@ using System;
 using Booklib.DTOs.Response;
 using MailKit.Net.Smtp;
 using MimeKit;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
+using System.Linq;
 
-namespace Booklib.Helpers;
-
-public class EmailService(IConfiguration configuration)
+namespace Booklib.Helpers
 {
-        private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+    public class EmailService
+    {
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<EmailService> _logger;
 
-    public async Task SendOrderConfirmationEmail(string toEmail, OrderResponseDTO order)
+        public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
         {
-            // Validate inputs
-            if (string.IsNullOrWhiteSpace(toEmail))
-                throw new ArgumentException("Recipient email cannot be null or empty", nameof(toEmail));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
 
-            if (order == null)
-                throw new ArgumentNullException(nameof(order));
-
+        public async Task SendOrderConfirmationEmail(string toEmail, OrderResponseDTO order)
+        {
             try
             {
-                // Get configuration values with proper null checks
+                Console.WriteLine($"[EmailService] Preparing to send email to {toEmail}.");
+
+                // Validate inputs
+                if (string.IsNullOrWhiteSpace(toEmail))
+                    throw new ArgumentException("Recipient email cannot be null or empty", nameof(toEmail));
+
+                if (order == null)
+                    throw new ArgumentNullException(nameof(order));
+
+                // Get configuration values
                 var emailSettings = _configuration.GetSection("EmailSettings");
-                
-                var fromEmail = emailSettings["FromEmail"] 
+                var fromEmail = emailSettings["FromEmail"]
                     ?? throw new InvalidOperationException("FromEmail configuration is missing");
-                
-                var smtpServer = emailSettings["SmtpServer"] 
+                var smtpServer = emailSettings["SmtpServer"]
                     ?? throw new InvalidOperationException("SmtpServer configuration is missing");
-                
                 if (!int.TryParse(emailSettings["SmtpPort"], out var smtpPort))
                     throw new InvalidOperationException("Invalid SmtpPort configuration");
-                
-                var password = emailSettings["Password"] 
+                var password = emailSettings["Password"]
                     ?? throw new InvalidOperationException("Email password is missing");
 
                 // Create email message
@@ -46,16 +55,23 @@ public class EmailService(IConfiguration configuration)
                 builder.HtmlBody = GenerateOrderEmailBody(order);
                 email.Body = builder.ToMessageBody();
 
+                Console.WriteLine($"[EmailService] Connecting to SMTP server {smtpServer}:{smtpPort}...");
+
                 // Send email
                 using var smtp = new SmtpClient();
-                await smtp.ConnectAsync(smtpServer, smtpPort, true);
+                await smtp.ConnectAsync(smtpServer, smtpPort, MailKit.Security.SecureSocketOptions.StartTls); // ✅ correct
+
                 await smtp.AuthenticateAsync(fromEmail, password);
                 await smtp.SendAsync(email);
                 await smtp.DisconnectAsync(true);
+
+                Console.WriteLine($"[EmailService] Email sent successfully to {toEmail}.");
+                _logger.LogInformation("Order confirmation email sent successfully to {Email}", toEmail);
             }
             catch (Exception ex)
             {
-                // Wrap and rethrow with more context
+                Console.WriteLine($"[EmailService] Error sending email to {toEmail}: {ex.Message}");
+                _logger.LogError(ex, "Failed to send order confirmation email to {Email}", toEmail);
                 throw new InvalidOperationException("Failed to send order confirmation email", ex);
             }
         }
@@ -108,3 +124,4 @@ public class EmailService(IConfiguration configuration)
                 </div>";
         }
     }
+}

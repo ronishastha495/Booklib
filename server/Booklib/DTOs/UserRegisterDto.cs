@@ -35,4 +35,12 @@ namespace Booklib.DTOs
         public string Role { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
     }
+
+    public class UserBasicInfoDTO
+{
+    public Guid UserId { get; set; }
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public string Email { get; set; }
+}
 }

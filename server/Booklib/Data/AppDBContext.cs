@@ -3,12 +3,8 @@ using Booklib.Models.Entities;
 
 namespace Booklib.Data
 {
-    public class AppDBContext : DbContext
+    public class AppDBContext(DbContextOptions<AppDBContext> options) : DbContext(options)
     {
-        public AppDBContext(DbContextOptions<AppDBContext> options) : base(options)
-        {
-        }
-
         public DbSet<User> User { get; set; }
         public DbSet<Book> Books { get; set; }
         public DbSet<Bookmark> Bookmarks { get; set; }
@@ -17,7 +13,10 @@ namespace Booklib.Data
         public DbSet<Cart> Carts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<Order> Orders { get; set; }
+        public DbSet<Review> Reviews { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

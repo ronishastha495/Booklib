@@ -1,5 +1,6 @@
 using Booklib.Data;
 using Booklib.Helpers;
+using Booklib.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -27,13 +28,16 @@ builder.Services.AddCors(options =>
     });
 });
 
+
 // Add db context with PostgreSQL
 builder.Services.AddDbContext<AppDBContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Add EmailService to the dependency injection container
 builder.Services.AddScoped<EmailService>();
 // Add JWT service
 builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
  
 // Add authorization policies
 builder.Services.AddAuthorizationBuilder()
@@ -60,7 +64,18 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddSingleton<WebSocketConnectionManager>();
+
+
 var app = builder.Build();
+// Configure WebSocket
+app.UseWebSockets(new WebSocketOptions
+{
+    KeepAliveInterval = TimeSpan.FromMinutes(2)
+});
+
+// Add WebSocket middleware
+app.UseWebSocketMiddleware();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

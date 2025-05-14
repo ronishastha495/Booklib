@@ -3,19 +3,36 @@ using Booklib.Data;
 using Booklib.DTOs.Request;
 using Booklib.DTOs.Response;
 using Booklib.Models.Entities;
+using Booklib.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Booklib.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class OrderController(AppDBContext context) : ControllerBase
+    public class OrderController : ControllerBase
     {
-        private readonly AppDBContext _context = context;
+        private readonly AppDBContext _context;
+        private readonly EmailService _emailService;
+        private readonly ILogger<OrderController> _logger;
+
+        public OrderController(
+            AppDBContext context,
+            EmailService emailService,
+            ILogger<OrderController> logger)
+        {
+            _context = context;
+            _emailService = emailService;
+            _logger = logger;
+        }
 
         // GET: api/Order
         [HttpGet]
@@ -49,65 +66,102 @@ namespace Booklib.Controllers
         }
 
         // POST: api/Order
-    [HttpPost]
-public async Task<ActionResult<OrderResponseDTO>> CreateOrder([FromBody] OrderRequestDTO orderDTO)
-{
-    var userId = GetCurrentUserId();
-
-    if (orderDTO?.Items == null || !orderDTO.Items.Any())
-        return BadRequest("No items provided in the order");
-
-    // Validate stock availability
-    foreach (var item in orderDTO.Items)
-    {
-        var book = await _context.Books.FindAsync(item.BookId);
-        if (book == null)
-            return BadRequest($"Book with ID {item.BookId} not found");
-            
-        if (book.StockQuantity < item.Quantity)
-            return BadRequest($"Not enough stock for book: {book.Title}");
-    }
-
-    // Calculate discounts
-    var itemCount = orderDTO.Items.Sum(i => i.Quantity);
-    var discountPercentage = CalculateDiscountPercentage(userId, itemCount);
-
-    // Create order
-    var order = new Order
-    {
-        UserId = userId,
-        Status = OrderStatus.Pending,
-        Items = new List<OrderItem>()
-    };
-
-    decimal subtotal = 0;
-
-    // Add order items and update stock
-    foreach (var itemDTO in orderDTO.Items)
-    {
-        var book = await _context.Books.FindAsync(itemDTO.BookId);
-        var price = book.OnSale ? book.DiscountPrice ?? book.Price : book.Price;
-        
-        order.Items.Add(new OrderItem
+        [HttpPost]
+        public async Task<ActionResult<OrderResponseDTO>> CreateOrder([FromBody] OrderRequestDTO orderDTO)
         {
-            BookId = itemDTO.BookId,
-            Quantity = itemDTO.Quantity,
-            UnitPrice = price
-        });
+            try
+            {
+                var userId = GetCurrentUserId();
 
-        subtotal += price * itemDTO.Quantity;
-        book.StockQuantity -= itemDTO.Quantity;
-    }
+                if (orderDTO?.Items == null || !orderDTO.Items.Any())
+                    return BadRequest("No items provided in the order");
 
-    order.SubTotal = subtotal;
-    order.DiscountPercentage = discountPercentage;
-    order.FinalTotal = subtotal * (1 - discountPercentage / 100);
+                // Load user information for email
+                var user = await _context.User.FindAsync(userId);
+                if (user == null)
+                    return BadRequest("User not found");
 
-    _context.Orders.Add(order);
-    await _context.SaveChangesAsync();
+                // Validate stock availability
+                foreach (var item in orderDTO.Items)
+                {
+                    var book = await _context.Books.FindAsync(item.BookId);
+                    if (book == null)
+                        return BadRequest($"Book with ID {item.BookId} not found");
+                        
+                    if (book.StockQuantity < item.Quantity)
+                        return BadRequest($"Not enough stock for book: {book.Title}");
+                }
 
-    return CreatedAtAction(nameof(GetOrder), new { id = order.OrderId }, MapToOrderResponseDTO(order));
-}
+                // Calculate discounts
+                var itemCount = orderDTO.Items.Sum(i => i.Quantity);
+                var discountPercentage = CalculateDiscountPercentage(userId, itemCount);
+
+                // Create order
+                var order = new Order
+                {
+                    UserId = userId,
+                    Status = OrderStatus.Pending,
+                    Items = new List<OrderItem>(),
+                    ClaimCode = GenerateClaimCode()
+                };
+
+                decimal subtotal = 0;
+
+                // Add order items and update stock
+                foreach (var itemDTO in orderDTO.Items)
+                {
+                    var book = await _context.Books.FindAsync(itemDTO.BookId);
+                    var price = book.OnSale ? book.DiscountPrice ?? book.Price : book.Price;
+                    
+                    order.Items.Add(new OrderItem
+                    {
+                        BookId = itemDTO.BookId,
+                        Quantity = itemDTO.Quantity,
+                        UnitPrice = price
+                    });
+
+                    subtotal += price * itemDTO.Quantity;
+                    book.StockQuantity -= itemDTO.Quantity;
+                }
+
+                order.SubTotal = subtotal;
+                order.DiscountPercentage = discountPercentage;
+                order.FinalTotal = subtotal * (1 - discountPercentage / 100);
+
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync();
+
+                // Create OrderResponseDTO for email
+                var orderResponse = MapToOrderResponseDTO(order);
+
+                // Send confirmation email
+                try
+                {
+                    await _emailService.SendOrderConfirmationEmail(user.Email, orderResponse);
+                    _logger.LogInformation(
+                        "Order confirmation email sent successfully for Order {OrderId} to {UserEmail}", 
+                        order.OrderId, user.Email);
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogError(emailEx, 
+                        "Failed to send order confirmation email for Order {OrderId} to {UserEmail}", 
+                        order.OrderId, user.Email);
+                }
+
+                return CreatedAtAction(
+                    nameof(GetOrder), 
+                    new { id = order.OrderId }, 
+                    orderResponse
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating order");
+                return StatusCode(500, "An error occurred while creating the order");
+            }
+        }
+
         // POST: api/Order/{id}/cancel
         [HttpPost("{id}/cancel")]
         public async Task<ActionResult> CancelOrder(Guid id, [FromBody] string reason)
@@ -163,23 +217,24 @@ public async Task<ActionResult<OrderResponseDTO>> CreateOrder([FromBody] OrderRe
                 }).ToList()
             };
         }
+private decimal CalculateDiscountPercentage(Guid userId, int itemCount)
+{
+    decimal discount = 0;
 
-        private decimal CalculateDiscountPercentage(Guid userId, int itemCount)
-        {
-            decimal discount = 0;
+    // Apply 5% discount for orders with 5 or more books
+    if (itemCount >= 5)
+        discount += 5;
 
-            // Apply 5% discount for orders with 5 or more books
-            if (itemCount >= 5)
-                discount += 5;
+    // Check for loyalty discount (10% stackable after every 10 successful orders)
+    var successfulOrdersCount = _context.Orders
+        .Count(o => o.UserId == userId && o.Status == OrderStatus.Completed);
+    
+    // Apply stackable 10% discount for every 10 successful orders
+    // Integer division by 10 gives us the number of complete sets of 10 orders
+    discount += (successfulOrdersCount / 10) * 10;
 
-            // Add 10% discount for every 10 successful orders
-            var successfulOrdersCount = _context.Orders
-                .Count(o => o.UserId == userId && o.Status == OrderStatus.Completed);
-
-            discount += (successfulOrdersCount / 10) * 10;
-
-            return discount;
-        }
+    return discount;
+}
 
         private Guid GetCurrentUserId()
         {
@@ -190,6 +245,16 @@ public async Task<ActionResult<OrderResponseDTO>> CreateOrder([FromBody] OrderRe
                 throw new UnauthorizedAccessException("User ID not found in token");
 
             return Guid.Parse(userIdClaim);
+        }
+
+        private string GenerateClaimCode()
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var random = new Random();
+            var code = new string(Enumerable.Repeat(chars, 8)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
+            
+            return code;
         }
     }
 }

@@ -2,12 +2,15 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:5259/api/auth';
 
-// Create an axios instance with default headers
+// Axios instance
 const api = axios.create({
-  baseURL: API_URL
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
-// Add request interceptor to add auth token to all requests
+// Request interceptor to attach token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -16,49 +19,39 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 const authService = {
-  // Login function to authenticate user
-  // ... rest of the file remains the same ...
+  // Login user and store tokens
+  async login(email, password, role = 'Member') {
+    try {
+      const response = await axios.post(`${API_URL}/login`, { email, password, role });
 
-async login(email, password, role = 'Member') {
-  try {
-    const response = await axios.post(`${API_URL}/login`, { 
-      email, 
-      password, 
-      role
-    });
-    
-    if (!response.data?.token) {
-      throw new Error('Login response missing token');
-    }
-    
-    // Store auth data atomically
-    const userData = {
-      ...response.data,
-      email: response.data.email || email,
-    };
-    
-    localStorage.setItem('token', response.data.token);
-    if (response.data.refreshToken) {
-      localStorage.setItem('refreshToken', response.data.refreshToken);
-    }
-    localStorage.setItem('userRole', response.data.role || 'Member');
-    localStorage.setItem('user', JSON.stringify(userData));
-    
-    return response.data;
-  } catch (error) {
-    console.error('Login error:', error.response?.data || error.message);
-    throw error;
-  }
-},
+      if (!response.data?.token) {
+        throw new Error('Login response missing token');
+      }
 
-// ... rest of the file remains the same ...
-  // Register function
+      const userData = {
+        ...response.data,
+        email: response.data.email || email,
+      };
+
+      localStorage.setItem('token', response.data.token);
+      if (response.data.refreshToken) {
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+      }
+      localStorage.setItem('userRole', response.data.role || 'Member');
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      return response.data;
+    } catch (error) {
+      console.error('Login error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Register a new user
   async register(userData) {
     try {
       const response = await axios.post(`${API_URL}/register`, userData);
@@ -69,41 +62,46 @@ async login(email, password, role = 'Member') {
     }
   },
 
-  // Logout function
-  // In your authService.js file, update the logout function:
+  // Logout the user and clear localStorage
+  logout() {
+    const itemsToRemove = ['token', 'refreshToken', 'userRole', 'user'];
+    itemsToRemove.forEach(item => localStorage.removeItem(item));
 
-logout() {
-    // Clear all auth-related items
-    const itemsToRemove = [
-        'token',
-        'refreshToken',
-        'userRole',
-        'user'
-    ];
-    
-    itemsToRemove.forEach(item => {
-        localStorage.removeItem(item);
-    });
-    
-    // Clear any authentication headers
+    // Clear auth header for future API calls
     if (api.defaults.headers) {
-        delete api.defaults.headers['Authorization'];
+      delete api.defaults.headers['Authorization'];
     }
-    
+
     console.log('User logged out, localStorage cleared');
 },
-  // Get current user from localStorage
+  async getUserProfile() {
+    try {
+      // Instead of making an API call, just return the cached user data
+      const userData = this.getUser();
+      if (!userData) {
+        throw new Error('No user data found');
+      }
+      return userData;
+    } catch (error) {
+      console.error('Error getting user profile:', error.message);
+      throw error;
+    }
+  },
+
+  // Modify getUser to include role information
   getUser() {
     try {
       const user = localStorage.getItem('user');
+      const role = localStorage.getItem('userRole');
+      
       if (!user) {
-        console.log('No user found in localStorage');
         return null;
       }
-      
       const userData = JSON.parse(user);
-      console.log('User data retrieved from localStorage:', userData);
-      return userData;
+      return {
+        ...userData,
+        role: role || userData.role || 'Member'
+      };
     } catch (error) {
       console.error('Error parsing user data from localStorage:', error);
       return null;
@@ -111,26 +109,86 @@ logout() {
   },
 
   // Get user profile from API
-  async getUserProfile() {
+ async getUserProfile() {
+  try {
+    const token = this.getToken();
+    
+    if (!token) {
+      console.log('No authentication token found');
+      return this.getUser();
+    }
+    
+    // Return cached user if profile endpoint doesn't exist
     try {
-      const token = this.getToken();
-      
-      if (!token) {
-        console.error('No authentication token found');
-        return this.getUser(); // Fall back to localStorage
-      }
-      
-      const response = await api.get(`${API_URL}/profile`);
+      const response = await api.get(`${API_URL}/me`);
       console.log('User profile fetched from API:', response.data);
       
-      // Update localStorage with the latest data
       localStorage.setItem('user', JSON.stringify(response.data));
-      
       return response.data;
     } catch (error) {
-      console.error('Error fetching user profile:', error.response?.data || error.message);
-      // Fall back to cached user data
-      return this.getUser();
+      if (error.response?.status === 404) {
+        console.log('Profile endpoint not found, using cached data');
+        return this.getUser();
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error in getUserProfile:', error);
+    return this.getUser();
+  }
+},
+  // Check if user is authenticated
+  isAuthenticated() {
+    const token = localStorage.getItem('token');
+    return !!token;
+  },
+
+  // Get user role
+  getUserRole() {
+    return localStorage.getItem('userRole') || 'Member';
+  },
+
+  // Get token from localStorage
+  getToken() {
+    return localStorage.getItem('token');
+  },
+
+  // Update user profile
+  async updateProfile(userData) {
+    try {
+      const response = await api.put('/me', userData);
+      const currentUser = this.getUser();
+      const updatedUser = { ...currentUser, ...response.data };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return response.data;
+    } catch (error) {
+      console.error('Error updating profile:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Refresh the token
+  async refreshToken() {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const response = await axios.post(`${API_URL}/refresh-token`, { refreshToken });
+
+      if (response.data?.token) {
+        localStorage.setItem('token', response.data.token);
+        if (response.data.refreshToken) {
+          localStorage.setItem('refreshToken', response.data.refreshToken);
+        }
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Error refreshing token:', error.response?.data || error.message);
+      this.logout(); // logout on refresh failure
+      throw error;
     }
   },
 
@@ -148,51 +206,6 @@ logout() {
   // Get token from localStorage
   getToken() {
     return localStorage.getItem('token');
-  },
-  
-  // Update user profile
-  async updateProfile(userData) {
-    try {
-      const response = await api.put(`${API_URL}/profile`, userData);
-      
-      // Update user data in localStorage
-      const currentUser = this.getUser();
-      const updatedUser = { ...currentUser, ...response.data };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      return response.data;
-    } catch (error) {
-      console.error('Error updating profile:', error.response?.data || error.message);
-      throw error;
-    }
-  },
-  
-  // Refresh token
-  async refreshToken() {
-    try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken) {
-        throw new Error('No refresh token available');
-      }
-      
-      const response = await axios.post(`${API_URL}/refresh-token`, { 
-        refreshToken 
-      });
-      
-      if (response.data && response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        if (response.data.refreshToken) {
-          localStorage.setItem('refreshToken', response.data.refreshToken);
-        }
-      }
-      
-      return response.data;
-    } catch (error) {
-      console.error('Error refreshing token:', error.response?.data || error.message);
-      // If refresh token fails, logout the user
-      this.logout();
-      throw error;
-    }
   }
 };
 
