@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { BookOpen, ShoppingCart, LogOut, Package, Bell, Heart } from "lucide-react";
+import { BookOpen, ShoppingCart, LogOut, Package, Bell, History, Heart } from "lucide-react";
 import authService from "../services/authService";
 import { OrderContext } from '../contexts/OrderContext';
 
@@ -16,7 +16,7 @@ const UserDashboard = () => {
     return notifications.some(notification => !notification.isRead);
   }, [notifications]);
 
-  // Optimized datetime update
+  // Optimized datetime update with better formatting
   useEffect(() => {
     const updateDateTime = () => {
       const now = new Date();
@@ -32,7 +32,6 @@ const UserDashboard = () => {
       };
       
       setCurrentDateTime(now.toLocaleString('en-US', options) + ' UTC');
-      setCurrentDateTime(now.toISOString().replace('T', ' ').substring(0, 19));
     };
 
     updateDateTime();
@@ -43,9 +42,9 @@ const UserDashboard = () => {
   // Handle authentication and user data
   useEffect(() => {
     const fetchUserData = async () => {
-    const fetchUserData = async () => {
       try {
         if (!authService.isAuthenticated()) {
+          console.log("No authentication token found, redirecting to login");
           navigate("/login");
           return;
         }
@@ -53,12 +52,14 @@ const UserDashboard = () => {
         const userData = authService.getUser();
         
         if (!userData) {
+          console.log("No user data found, redirecting to login");
           navigate("/login");
           return;
         }
 
         setUser(userData);
       } catch (error) {
+        console.error("Error fetching user data:", error);
         navigate("/login");
       } finally {
         setLoading(false);
@@ -92,6 +93,7 @@ const UserDashboard = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* DateTime Header */}
       <div className="bg-gray-800 text-white py-2 px-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="text-sm">
@@ -104,6 +106,7 @@ const UserDashboard = () => {
       </div>
 
       <div className="flex flex-1">
+        {/* Sidebar */}
         <aside className="w-56 bg-white border-r flex flex-col py-8 px-4">
           <div className="mb-10">
             <span className="text-2xl font-bold text-indigo-700">BookLib</span>
@@ -128,6 +131,18 @@ const UserDashboard = () => {
               <Package size={18} /> Orders
             </Link>
             <Link
+              to="/orders/history"
+              className="flex items-center gap-3 px-3 py-2 rounded hover:bg-indigo-50 text-gray-700 font-medium transition"
+            >
+              <History size={18} /> Order History
+            </Link>
+            <Link
+              to="/wishlist"
+              className="flex items-center gap-3 px-3 py-2 rounded hover:bg-indigo-50 text-gray-700 font-medium transition"
+            >
+              <Heart size={18} /> Wishlist
+            </Link>
+            <Link
               to="/notifications"
               className="flex items-center gap-3 px-3 py-2 rounded hover:bg-indigo-50 text-gray-700 font-medium transition relative"
             >
@@ -136,18 +151,6 @@ const UserDashboard = () => {
               {hasUnreadNotifications && (
                 <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white"></span>
               )}
-            </Link>
-            <Link
-              to="/wishlist"
-              className="flex items-center gap-3 px-3 py-2 rounded hover:bg-indigo-50 text-gray-700 font-medium transition"
-            >
-              <Heart size={18} /> Wishlist
-            </Link>
-            <Link
-              to="/wishlist"
-              className="flex items-center gap-3 px-3 py-2 rounded hover:bg-indigo-50 text-gray-700 font-medium transition"
-            >
-              <Heart size={18} /> Wishlist
             </Link>
           </nav>
           <button
@@ -158,6 +161,7 @@ const UserDashboard = () => {
           </button>
         </aside>
 
+        {/* Main Content */}
         <main className="flex-1 p-10">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">
             Welcome {getUserDisplayName()}!

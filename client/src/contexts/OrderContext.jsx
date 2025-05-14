@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import orderService from '../services/orderService';
-import { toast } from 'sonner'; // Assuming you're using react-toastify for notifications
+import { toast } from 'sonner'; // Assuming you're using sonner for notifications
 
 const OrderContext = createContext();
 
@@ -13,7 +13,8 @@ export const OrderProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [userOrders, setUserOrders] = useState([]); // Added for user-specific orders
+  const [userOrders, setUserOrders] = useState([]);
+  const [wsConnections, setWsConnections] = useState({ orders: null, notifications: null });
 
   // Fetch user's orders
   const fetchUserOrders = async () => {
@@ -31,9 +32,7 @@ export const OrderProvider = ({ children }) => {
     }
   };
 
-  // Fetch pending orders (for staff)  const [wsConnections, setWsConnections] = useState({ orders: null, notifications: null });
-
-  
+  // Fetch pending orders (for staff)
   const fetchPendingOrders = async () => {
     setLoading(true);
     setError(null);
@@ -49,6 +48,7 @@ export const OrderProvider = ({ children }) => {
     }
   };
 
+  // Fetch notifications
   const fetchNotifications = async () => {
     setLoading(true);
     setError(null);
@@ -63,38 +63,7 @@ export const OrderProvider = ({ children }) => {
     }
   };
 
-  const markNotificationAsRead = async (notificationId) => {
-    setLoading(true);
-    setError(null);
-    try {
-      await orderService.markNotificationAsRead(notificationId);
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notificationId ? { ...n, isRead: true } : n
-        )
-      );
-    } catch (err) {
-      console.error('Failed to mark notification as read:', err);
-      setError(err.message || 'Failed to mark notification as read');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchNotifications = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await orderService.getNotifications();
-      setNotifications(response);
-    } catch (err) {
-      console.error('Failed to load notifications:', err);
-      setError(err.message || 'Failed to load notifications');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Mark notification as read
   const markNotificationAsRead = async (notificationId) => {
     setLoading(true);
     setError(null);
@@ -169,6 +138,7 @@ export const OrderProvider = ({ children }) => {
     }
   };
 
+  // Process claim code
   const handleProcessClaimCode = async (claimCode) => {
     setLoading(true);
     setError(null);
@@ -180,22 +150,6 @@ export const OrderProvider = ({ children }) => {
       console.error('Failed to process claim code:', err);
       setError(err.response?.data?.message || 'Failed to process claim code');
       throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch user's orders
-  const fetchUserOrders = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await orderService.getUserOrders();
-      setUserOrders(response);
-    } catch (err) {
-      console.error('Failed to load user orders:', err);
-      setError(err.message || 'Failed to load user orders');
-      toast.error('Failed to load your orders');
     } finally {
       setLoading(false);
     }
@@ -249,111 +203,7 @@ export const OrderProvider = ({ children }) => {
     }
   };
 
-  // Setup real-time updates and initial data fetch
-  useEffect(() => {
-    fetchUserOrders(); // Load user's orders
-    fetchPendingOrders(); // Load pending orders if user is staff
-    
-    // Setup WebSocket for real-time updates
-    const ws = orderService.setupOrderUpdates((newOrder) => {
-      setOrders(prev => [newOrder, ...prev]);
-      setUserOrders(prev => {
-        if (newOrder.userId === localStorage.getItem('userId')) {
-          return [newOrder, ...prev];
-        }
-        return prev;
-      });
-      
-      // Show notification for new orders
-      toast.info(`New order received: #${newOrder.orderId}`);
-    });
-
-    // Cleanup WebSocket connection
-    return () => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-    };
-    fetchPendingOrders();
-    fetchNotifications();
-
-    const wsOrders = orderService.setupOrderUpdates((newOrder) => {
-      setOrders((prev) => [newOrder, ...prev]);
-    });
-
-    const wsNotifications = orderService.setupNotificationUpdates((newNotification) => {
-      setNotifications((prev) => [newNotification, ...prev]);
-    });
-
-    return () => {
-      wsOrders.close();
-      wsNotifications.close();
-    };
-  }, []);
-
-  useEffect(() => {
-  const fetchInitialData = async () => {
-    try {
-      await fetchPendingOrders();
-      await fetchNotifications();
-    } catch (error) {
-      console.error('Error fetching initial data:', error);
-    }
-  };
-
-  fetchInitialData();
-
-  // Setup WebSocket connections with proper authentication
-  const token = localStorage.getItem('token');
-  
-  const wsOrders = new WebSocket(`ws://localhost:5259/ws/orders`);
-  const wsNotifications = new WebSocket(`ws://localhost:5259/ws/notifications`);
-
-  // Add connection handlers
-  wsOrders.onopen = () => {
-    console.log('Orders WebSocket Connected');
-    // Send authentication token
-    wsOrders.send(JSON.stringify({ type: 'auth', token }));
-  };
-
-  wsNotifications.onopen = () => {
-    console.log('Notifications WebSocket Connected');
-    // Send authentication token
-    wsNotifications.send(JSON.stringify({ type: 'auth', token }));
-  };
-
-  wsOrders.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data.type === 'NEW_ORDER') {
-      setOrders((prev) => [data.order, ...prev]);
-    }
-  };
-
-  wsNotifications.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data.type === 'NEW_NOTIFICATION') {
-      setNotifications((prev) => [data.notification, ...prev]);
-    }
-  };
-
-  wsOrders.onerror = (error) => {
-    console.error('Orders WebSocket Error:', error);
-  };
-
-  wsNotifications.onerror = (error) => {
-    console.error('Notifications WebSocket Error:', error);
-  };
-
-  // Cleanup function
-  return () => {
-    if (wsOrders.readyState === WebSocket.OPEN) {
-      wsOrders.close();
-    }
-    if (wsNotifications.readyState === WebSocket.OPEN) {
-      wsNotifications.close();
-    }
-  };
-}, []); // Empty dependency array since this should only run once on mount
+  // Setup WebSocket connections for real-time updates
   useEffect(() => {
     // Initialize WebSocket connections
     const token = localStorage.getItem('token');
@@ -381,6 +231,15 @@ export const OrderProvider = ({ children }) => {
         const data = JSON.parse(event.data);
         if (data.type === 'NEW_ORDER') {
           setOrders(prev => [data.order, ...prev]);
+          
+          // Add to user orders if belongs to current user
+          if (data.order.userId === localStorage.getItem('userId')) {
+            setUserOrders(prev => [data.order, ...prev]);
+            toast.info(`Your order #${data.order.orderId} has been created`);
+          } else {
+            // Show notification for new orders to staff
+            toast.info(`New order received: #${data.order.orderId}`);
+          }
         }
       };
 
@@ -389,6 +248,7 @@ export const OrderProvider = ({ children }) => {
         if (data.type === 'NEW_NOTIFICATION') {
           setNotifications(prev => [data.notification, ...prev]);
           // Play a sound or show a toast for new notifications
+          toast.info('New notification received');
         }
       };
 
@@ -415,11 +275,13 @@ export const OrderProvider = ({ children }) => {
       setWsConnections({ orders: ordersWs, notifications: notificationsWs });
     };
 
-    setupWebSockets();
-
     // Fetch initial data
+    fetchUserOrders();
     fetchPendingOrders();
     fetchNotifications();
+    
+    // Setup websocket connections
+    setupWebSockets();
 
     // Cleanup function
     return () => {
@@ -430,7 +292,7 @@ export const OrderProvider = ({ children }) => {
         wsConnections.notifications.close();
       }
     };
-  }, []);
+  }, []); // Empty dependency array since this should only run once on mount
 
   return (
     <OrderContext.Provider

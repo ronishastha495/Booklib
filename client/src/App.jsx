@@ -28,6 +28,7 @@ import StaffDashboard from './pages/staff/StaffDashboard';
 import OrderHistoryPage from './pages/OrderHistoryPage';
 import ReviewFormPage from './pages/ReviewFormPage';
 import Wishlist from './pages/Wishlist';
+import UserNotification from './pages/UserNotification';
 
 function App() {
   const [initializing, setInitializing] = useState(true);
@@ -85,6 +86,7 @@ function App() {
                     <Route path="/cart" element={<Cart />} />
                     <Route path="/dashboard" element={<UserDashboard />} />
                     <Route path="/wishlist" element={<Wishlist />} />
+                    <Route path="/notifications" element={<UserNotification />} />
                   </Route>
 
                   {/* Staff routes (restricted) */}
