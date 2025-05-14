@@ -176,7 +176,7 @@ const UserDashboard = () => {
             </div>
 
             {/* Quick Stats */}
-            <div className="bg-[#fff8f0] rounded-lg shadow p-6 border border-[#e5ccb5]">
+            {/* <div className="bg-[#fff8f0] rounded-lg shadow p-6 border border-[#e5ccb5]">
               <h2 className="text-xl font-semibold text-[#7c5e3c] mb-4">Quick Stats</h2>
               <div className="grid grid-cols-1 gap-4">
                 <div className="bg-[#f5e9d4] p-4 rounded-lg flex items-center justify-between">
@@ -192,7 +192,7 @@ const UserDashboard = () => {
                   <span className="text-xl font-bold text-[#a9895a]">--</span>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </main>
       </div>
