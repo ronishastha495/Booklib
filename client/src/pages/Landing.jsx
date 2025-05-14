@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FaShoppingCart } from "react-icons/fa";
+import { FaShoppingCart, FaUser, FaSignOutAlt } from "react-icons/fa";
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import BookService from "../services/bookService";
@@ -57,7 +57,6 @@ const Landing = () => {
     const [error, setError] = useState(null);
     const [showDialog, setShowDialog] = useState(false);
     const [currentDateTime, setCurrentDateTime] = useState(formatDateTime());
-    
 
     // Update date/time every second
     useEffect(() => {
@@ -74,7 +73,6 @@ const Landing = () => {
                 const data = await BookService.getCategoryCounts();
                 setCategoryCounts(data);
             } catch (err) {
-                console.error("Error fetching category counts:", err);
                 setCategoryCounts({});
             }
         };
@@ -86,7 +84,6 @@ const Landing = () => {
         const fetchBooks = async () => {
             setLoading(true);
             setError(null);
-
             try {
                 let data;
                 if (category !== "all") {
@@ -134,13 +131,11 @@ const Landing = () => {
                     setTotalCount(response.totalCount);
                 }
             } catch (err) {
-                console.error("Error fetching books:", err);
                 setError("Could not load books. Please try again later.");
             } finally {
                 setLoading(false);
             }
         };
-
         fetchBooks();
     }, [genre, availability, search, sortBy, sortOrder, category]);
 
@@ -159,7 +154,6 @@ const Landing = () => {
             navigate('/login', { state: { from: '/books' } });
             return;
         }
-
         const bookForCart = {
             id: book.id,
             title: book.title,
@@ -169,7 +163,6 @@ const Landing = () => {
             quantity: 1,
             stockQuantity: book.stockQuantity
         };
-
         addToCart(bookForCart);
         setShowDialog(true);
         setTimeout(() => setShowDialog(false), 1200);
@@ -207,145 +200,111 @@ const Landing = () => {
                 break;
         }
     };
+
     const { announcements: activeAnnouncements, loading: announcementsLoading } = useAnnouncementContext();
     const now = new Date();
-const filteredAnnouncements = activeAnnouncements?.filter(announcement => 
-  announcement.isActive && 
-  new Date(announcement.startDate) <= now && 
-  new Date(announcement.endDate) >= now
-) || [];
+    const filteredAnnouncements = activeAnnouncements?.filter(announcement =>
+        announcement.isActive &&
+        new Date(announcement.startDate) <= now &&
+        new Date(announcement.endDate) >= now
+    ) || [];
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            {/* DateTime Header */}
-            <div className="bg-gray-800 text-white py-2 px-4">
-                <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    <div className="text-sm">
-                        Current Date and Time (UTC): {currentDateTime}
-                    </div>
-                    <div className="text-sm">
-                        Current User's Login: {auth?.user?.email || 'Guest'}
-                    </div>
-                </div>
-            </div>
-
-            {/* Dialog Box */}
-            {showDialog && (
-                <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 shadow-lg px-6 py-3 rounded-lg z-50 text-gray-700">
-                    Book added to cart!
-                </div>
-            )}
-
-            {/* Main Header */}
-            <header className="bg-white shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold text-gray-900">BookLib</h1>
-                    <div className="flex items-center space-x-4">
-                        {/* Filters */}
-                        <select
-                            className="border border-gray-200 rounded-md px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                            value={genre}
-                            onChange={(e) => handleFilters('genre', e.target.value)}
-                        >
-                            {genres.map(g => (
-                                <option key={g} value={g === "All" ? "" : g}>{g}</option>
-                            ))}
-                        </select>
-                        <select
-                            className="border border-gray-200 rounded-md px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                            value={availability}
-                            onChange={(e) => handleFilters('availability', e.target.value)}
-                        >
-                            {availabilities.map(a => (
-                                <option key={a.label} value={a.value}>{a.label}</option>
-                            ))}
-                        </select>
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            value={search}
-                            onChange={(e) => handleFilters('search', e.target.value)}
-                            className="border border-gray-200 rounded-md px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                        />
-                        <select
-                            className="border border-gray-200 rounded-md px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                            onChange={(e) => handleFilters('sort', e.target.value)}
-                        >
-                            {sortOptions.map(opt => (
-                                <option key={opt.label}>{opt.label}</option>
-                            ))}
-                        </select>
+        <div className="min-h-screen bg-gradient-to-br from-[#f7efe5] via-[#f5e9d4] to-[#f8f5e4] font-serif">
+            {/* Navbar */}
+            <nav className="bg-[#f5f0dc] border-b border-stone-400 shadow-inner fixed top-0 w-full z-50">
+                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+                    <Link to="/" className="text-3xl font-serif font-bold text-[#a9895a] hover:text-[#c97b63] transition">
+                        BookHeaven
+                    </Link>
+                    <div className="flex items-center space-x-6">
                         {auth?.token ? (
                             <>
-                                <Link to="/cart" className="relative">
-                                    <button className="text-gray-700 hover:text-indigo-600">
-                                        <FaShoppingCart className="w-6 h-6" />
-                                        {cartItems?.length > 0 && (
-                                            <span className="absolute -top-2 -right-2 bg-indigo-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
-                                                {cartItems.length}
-                                            </span>
-                                        )}
-                                    </button>
+                                <Link to="/dashboard" title="User Dashboard" className="text-[#a9895a] hover:text-[#c97b63] transition">
+                                    <FaUser className="w-6 h-6" />
                                 </Link>
-                                <button 
-                                    onClick={logout}
-                                    className="px-4 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                                >
-                                    Logout
+                                <Link to="/cart" title="Cart" className="relative text-[#a9895a] hover:text-[#c97b63] transition">
+                                    <FaShoppingCart className="w-6 h-6" />
+                                    {cartItems.length > 0 && (
+                                        <span className="absolute -top-2 -right-2 bg-[#c97b63] text-white rounded-full text-xs w-5 h-5 flex items-center justify-center border-2 border-white">
+                                            {cartItems.length}
+                                        </span>
+                                    )}
+                                </Link>
+                                <button onClick={logout} title="Logout" className="text-[#a9895a] hover:text-[#c97b63] transition">
+                                    <FaSignOutAlt className="w-6 h-6" />
                                 </button>
                             </>
                         ) : (
-                            <Link 
-                                to="/login"
-                                className="px-4 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-                            >
+                            <Link to="/login" className="text-[#a9895a] hover:text-[#c97b63] font-semibold">
                                 Login
                             </Link>
                         )}
                     </div>
                 </div>
-            </header>
+            </nav>
+            {/* Spacer for fixed navbar */}
+            <div className="h-20" />
+
+            {/* DateTime Header */}
+            <div className="bg-[#e3d5c3] text-stone-800 py-2 px-4 border-b border-[#e5ccb5] shadow">
+                <div className="max-w-7xl mx-auto flex justify-between items-center">
+                    <div className="text-sm font-mono">📚 {currentDateTime}</div>
+                    <div className="text-sm font-mono">👤 {auth?.user?.email || 'Guest'}</div>
+                </div>
+            </div>
+
+            {/* Dialog Box */}
+            {showDialog && (
+                <div className="fixed top-24 left-1/2 transform -translate-x-1/2 bg-[#fff8f0] border border-[#e5ccb5] shadow-xl px-8 py-4 rounded-2xl z-50 text-[#a9895a] font-semibold text-lg transition-all">
+                    Book added to cart!
+                </div>
+            )}
 
             {/* Hero Section */}
-            <div className="bg-indigo-100 text-center py-10 px-4">
-                <h2 className="text-3xl font-bold text-indigo-800 mb-2">Discover Your Next Favorite Book</h2>
-                <p className="text-gray-700 max-w-2xl mx-auto">Browse through bestsellers, new releases, exclusive editions and more!</p>
+            <div className="bg-[#ffe5ec] text-center py-10 px-4 border-b border-[#f3e8d8]">
+                <h2 className="text-4xl font-bold text-[#c97b63] mb-2 font-serif tracking-tight drop-shadow-sm">
+                    BookHeaven: Where Great Books Await You
+                </h2>
+                <p className="text-[#a9895a] max-w-2xl mx-auto text-lg">
+                    Discover your next favorite read from trending BookTok picks, cozy classics, and more!
+                </p>
             </div>
-              {/* Announcements Section */}
-{!announcementsLoading && filteredAnnouncements.length > 0 && (
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <h3 className="text-lg font-medium text-blue-800 mb-2">Announcements</h3>
-      <div className="space-y-2">
-        {filteredAnnouncements.map(announcement => (
-          <div key={announcement.announcementId} className="flex items-start">
-            <span className="flex-shrink-0 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded mr-2">
-              {announcement.category}
-            </span>
-            <p className="text-sm text-blue-700">
-              <strong>{announcement.title}:</strong> {announcement.content}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-)}
 
+            {/* Announcements Section */}
+            {!announcementsLoading && filteredAnnouncements.length > 0 && (
+                <div className="max-w-7xl mx-auto px-4 py-4">
+                    <div className="bg-[#f5e9d4] border border-[#e5ccb5] rounded-2xl p-4 shadow-sm">
+                        <h3 className="text-lg font-semibold text-[#c97b63] mb-2 font-serif">Announcements</h3>
+                        <div className="space-y-2">
+                            {filteredAnnouncements.map(announcement => (
+                                <div key={announcement.announcementId} className="flex items-start">
+                                    <span className="flex-shrink-0 bg-[#ffe5ec] text-[#c97b63] text-xs font-semibold px-2 py-0.5 rounded mr-2">
+                                        {announcement.category}
+                                    </span>
+                                    <p className="text-sm text-[#a9895a]">
+                                        <strong>{announcement.title}:</strong> {announcement.content}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-7xl mx-auto px-4 py-8">
                 {/* Categories */}
-                <div className="mb-6 flex flex-wrap gap-2">
+                <div className="mb-8 flex flex-wrap gap-2 justify-center">
                     {categories.map(cat => (
                         <button
                             key={cat.value}
                             onClick={() => handleFilters('category', cat.value)}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                                category === cat.value
-                                    ? "bg-indigo-600 text-white"
-                                    : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-                            }`}
+                            className={`px-5 py-2 rounded-full text-sm font-semibold transition-all border shadow-sm font-serif
+                                ${category === cat.value
+                                    ? "bg-[#ffe5ec] text-[#c97b63] border-[#f3e8d8] scale-105"
+                                    : "bg-[#fff8f0] text-[#7c5e3c] border-[#e5ccb5] hover:bg-[#f3e8d8]"
+                                }`}
                         >
                             {cat.label} {categoryCounts[cat.value] ? `(${categoryCounts[cat.value]})` : ""}
                         </button>
@@ -354,7 +313,7 @@ const filteredAnnouncements = activeAnnouncements?.filter(announcement =>
 
                 {/* Book Counter */}
                 <div className="flex items-center justify-end mb-6">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[#a9895a] font-serif">
                         Showing {Math.min(books.length, totalCount)} of {totalCount} books
                     </p>
                 </div>
@@ -362,99 +321,75 @@ const filteredAnnouncements = activeAnnouncements?.filter(announcement =>
                 {/* Book Grid */}
                 {loading ? (
                     <div className="flex justify-center items-center h-64">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#c97b63]"></div>
                     </div>
                 ) : error ? (
-                    <div className="text-center py-12">
-                        <p className="text-red-600">{error}</p>
-                    </div>
+                    <div className="text-center text-red-500 py-12">{error}</div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {books.map((book) => (
-                            <div
+                    <div
+                        className="font-serif text-stone-900"
+                        style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                            gap: "2rem",
+                        }}
+                    >
+                        {books.map(book => (
+                            <article
                                 key={book.id}
-                                className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center transition-transform hover:scale-105 relative"
+                                className="bg-[#fff8f0] border border-[#e5ccb5] rounded-2xl shadow-lg p-4 flex flex-col transition-transform hover:scale-105"
                             >
-                                {/* Badges */}
-                                {book.isBestseller && (
-                                    <span className="absolute top-2 left-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
-                                        Bestseller
-                                    </span>
-                                )}
-                                {book.isAwardWinner && (
-                                    <span className="absolute top-2 right-2 bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                                        Award Winner
-                                    </span>
-                                )}
-
-                                {/* Book Image */}
                                 <img
                                     src={book.image}
                                     alt={book.title}
-                                    className="w-40 h-56 object-cover rounded-md mb-4"
-                                    onError={(e) => {
-                                        e.target.onerror = null;
-                                        e.target.src = "/placeholder-book.png";
-                                    }}
+                                    className="w-full h-56 object-cover rounded-xl border border-[#f3e8d8] shadow mb-4 bg-[#f5e9d4]"
+                                    onError={e => { e.target.onerror = null; e.target.src = "/placeholder-book.png"; }}
                                 />
-
-                                {/* Book Info */}
-                                <h3 className="text-lg font-medium text-gray-900 text-center mb-1">{book.title}</h3>
-                                <p className="text-sm text-gray-500 mb-2">{book.author}</p>
-                                <div className="flex items-center space-x-2 mb-4">
-                                    {book.onSale ? (
-                                        <>
-                                            <span className="text-lg font-bold text-indigo-600">₹{book.discountPrice}</span>
-                                            <span className="text-sm text-gray-500 line-through">₹{book.price}</span>
-                                        </>
-                                    ) : (
-                                        <span className="text-lg font-bold text-gray-900">₹{book.price}</span>
+                                <h2 className="text-lg font-bold text-[#c97b63] mb-1 font-serif">{book.title}</h2>
+                                <p className="text-sm text-[#a9895a] italic mb-2">by {book.author}</p>
+                                <div className="flex flex-wrap gap-2 mb-3 text-xs">
+                                    {book.isBestseller && (
+                                        <span className="bg-[#ffe5ec] text-[#c97b63] rounded-full px-3 py-1 font-semibold">Bestseller</span>
+                                    )}
+                                    {book.isAwardWinner && (
+                                        <span className="bg-[#f5e9d4] text-[#a9895a] rounded-full px-3 py-1 font-semibold">Award</span>
+                                    )}
+                                    {book.isComingSoon && (
+                                        <span className="bg-[#f3e8d8] text-[#c97b63] rounded-full px-3 py-1 font-semibold">Coming Soon</span>
+                                    )}
+                                    {book.onSale && (
+                                        <span className="bg-[#f8d7da] text-[#c97b63] rounded-full px-3 py-1 font-semibold">Sale</span>
                                     )}
                                 </div>
-
-                                {/* Action Buttons */}
-                                <div className="flex flex-col space-y-2 w-full">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className={`text-lg font-bold ${book.onSale ? "text-[#c97b63]" : "text-[#7c5e3c]"}`}>
+                                        ₹{book.onSale ? book.discountPrice : book.price}
+                                    </span>
+                                    {book.onSale && (
+                                        <span className="text-xs text-[#a9895a] line-through">₹{book.price}</span>
+                                    )}
+                                </div>
+                                <div className="text-xs text-[#a9895a] mb-2">Rating: {book.rating}</div>
+                                <div className="mt-auto flex gap-2">
                                     <button
                                         onClick={() => handleViewDetails(book.id)}
-                                        className="w-full py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                                        className="px-4 py-1.5 rounded-full bg-[#ffe5ec] text-[#c97b63] font-semibold hover:bg-[#f3e8d8] transition"
                                     >
-                                        View Details
+                                        Details
                                     </button>
                                     <button
                                         onClick={() => handleAddToCart(book)}
-                                        disabled={!book.stockQuantity}
-                                        className={`w-full py-2 rounded-md transition-colors ${
-                                            book.stockQuantity
-                                                ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                        }`}
+                                        className="px-4 py-1.5 rounded-full bg-[#c97b63] text-white font-bold hover:bg-[#a9895a] transition"
+                                        disabled={book.stockQuantity === 0}
                                     >
-                                        {book.stockQuantity ? "Add to Cart" : "Out of Stock"}
+                                        {book.stockQuantity === 0 ? "Out of Stock" : "Add to Cart"}
                                     </button>
                                 </div>
-                            </div>
+                            </article>
                         ))}
                     </div>
                 )}
-
-                {/* View More Button */}
-                {books.length < totalCount && (
-                    <div className="flex justify-center mt-8">
-                        <Link 
-                            to="/login" 
-                            className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-                        >
-                            View More Books
-                        </Link>
-                    </div>
-                )}
             </main>
-
-      
-            {/* Footer */}
-            <footer className="mt-10 p-6 bg-white border-t text-center text-gray-600 text-sm">
-                © 2025 BookLib. All rights reserved.
-            </footer>
         </div>
     );
 };

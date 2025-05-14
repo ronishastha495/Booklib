@@ -1,20 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { FaEye, FaTimesCircle, FaClock } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { FaEye, FaClock, FaCheckCircle, FaTimesCircle, FaBoxOpen, FaStar } from 'react-icons/fa';
 import { toast } from 'sonner';
 import api from '../services/api';
-import OrderDetailsModal from '../pages/OrderDetailsModal';
-import reviewService from '../services/reviewService';
 
 const OrderHistoryPage = () => {
   const { auth } = useAuth();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [userReviews, setUserReviews] = useState([]); // Initialize as empty array
+  const [currentDateTime, setCurrentDateTime] = useState('');
 
   useEffect(() => {
     if (!auth?.token) {
@@ -22,224 +18,148 @@ const OrderHistoryPage = () => {
       return;
     }
 
-    const fetchData = async () => {
+    const fetchOrders = async () => {
       try {
         setLoading(true);
-        // Fetch orders
-        const orderResponse = await api.get('/Order');
-        setOrders(orderResponse.data);
-        
-        // Fetch user's reviews - ensure it's an array
-        const reviewResponse = await reviewService.getUserReviews();
-        setUserReviews(Array.isArray(reviewResponse) ? reviewResponse : []);
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
-        toast.error('Failed to load order history or reviews');
+        const response = await api.get('/Order');
+        setOrders(response.data);
+      } catch {
+        toast.error('Failed to load order history');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [auth, navigate]); // Remove the conditional fetching based on array lengths
+    fetchOrders();
 
-  // Check if user has reviewed a book
-  const hasReviewedBook = (bookId) => {
-    // Make sure userReviews is an array before calling .some()
-    return Array.isArray(userReviews) && userReviews.some((review) => review.bookId === bookId);
-  };
-
-  const calculateTotalQuantity = (items) => {
-    return items.reduce((sum, item) => sum + item.quantity, 0);
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return <FaClock className="text-yellow-500" />;
-      case 'confirmed':
-        return <FaClock className="text-blue-500" />;
-      case 'readyforpickup':
-        return <FaBoxOpen className="text-green-500" />;
-      case 'completed':
-        return <FaCheckCircle className="text-green-600" />;
-      case 'cancelled':
-        return <FaTimesCircle className="text-red-500" />;
-      default:
-        return <FaClock className="text-gray-500" />;
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'confirmed':
-        return 'bg-blue-100 text-blue-800';
-      case 'readyforpickup':
-        return 'bg-green-100 text-green-800';
-      case 'completed':
-        return 'bg-purple-100 text-purple-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
-
-  const handleViewDetails = (order) => {
-    setSelectedOrder(order);
-    setIsModalOpen(true);
-  };
+    const updateDateTime = () => {
+      const now = new Date();
+      const formatted = now.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      setCurrentDateTime(formatted);
+    };
+    updateDateTime();
+    const timer = setInterval(updateDateTime, 1000);
+    return () => clearInterval(timer);
+  }, [auth, navigate]);
 
   const handleCancelOrder = async (orderId) => {
-    if (!window.confirm('Are you sure you want to cancel this order?')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to cancel this order?')) return;
     try {
       await api.post(`/Order/${orderId}/cancel`, "User requested cancellation", {
         headers: { 'Content-Type': 'application/json' },
       });
-      setOrders(orders.map((order) => (order.orderId === orderId ? { ...order, status: 'Cancelled' } : order)));
+      setOrders((prev) =>
+        prev.map((o) => (o.orderId === orderId ? { ...o, status: 'Cancelled' } : o))
+      );
       toast.success('Order cancelled successfully');
-    } catch (error) {
-      console.error('Failed to cancel order:', error);
-      toast.error(typeof error.response?.data === 'string' ? error.response.data : 'Failed to cancel order');
+    } catch {
+      toast.error('Failed to cancel order');
     }
   };
 
-  const handleReviewBook = (bookId) => {
-    navigate(`/books/${bookId}?review=true`);
-  };
-
-  const formatItemsText = (items) => {
-    const totalQuantity = calculateTotalQuantity(items);
-    const uniqueItemCount = items.length;
-    if (uniqueItemCount === 1) {
-      const item = items[0];
-      return item.quantity === 1 ? '1 item' : `${item.quantity} ${item.bookTitle}`;
+  const getStatusBadgeClass = (status) => {
+    const base = "px-2 py-1 rounded-full text-xs font-semibold border ";
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return base + "bg-yellow-100 text-yellow-800 border-yellow-300";
+      case 'confirmed':
+        return base + "bg-blue-100 text-blue-800 border-blue-300";
+      case 'readyforpickup':
+        return base + "bg-green-100 text-green-800 border-green-300";
+      case 'completed':
+        return base + "bg-purple-100 text-purple-800 border-purple-300";
+      case 'cancelled':
+        return base + "bg-red-100 text-red-800 border-red-300";
+      default:
+        return base + "bg-gray-100 text-gray-800 border-gray-300";
     }
-    return `${totalQuantity} items (${uniqueItemCount} titles)`;
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#f8f5e4] font-serif">
+        <div className="w-12 h-12 border-4 border-[#a9895a] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Your Order History</h1>
-          <button
-            onClick={() => navigate('/books')}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
-          >
-            Continue Shopping
-          </button>
-        </div>
-
-        {orders.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">No Orders Found</h2>
-            <p className="text-gray-500 mb-4">You haven't placed any orders yet.</p>
-            <button
-              onClick={() => navigate('/books')}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
-            >
-              Browse Books
-            </button>
-          </div>
-        ) : (
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order #</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {orders.map((order) => (
-                  <tr key={order.orderId} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.claimCode}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(order.createdAt)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {order.items.map((item) => (
-                        <div key={item.bookId} className="flex items-center justify-between mb-2">
-                          <span>{item.quantity} x {item.bookTitle}</span>
-                          {order.status.toLowerCase() === 'completed' && (
-  <button
-    onClick={() => navigate(`/books/${item.bookId}/review`, { 
-      state: { orderId: order.orderId } 
-    })}
-    disabled={hasReviewedBook(item.bookId, order.orderId)}
-    className={`ml-2 text-yellow-600 hover:text-yellow-800 ${
-      hasReviewedBook(item.bookId, order.orderId) ? 'opacity-50 cursor-not-allowed' : ''
-    }`}
-    title={hasReviewedBook(item.bookId, order.orderId) ? 'Already Reviewed This Purchase' : 'Write a Review'}
-  >
-    <FaStar className="h-5 w-5" />
-  </button>
-
-                          )}
-                        </div>
-                      ))}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ₹{order.finalTotal.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="mr-2">{getStatusIcon(order.status)}</div>
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                          {order.status}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleViewDetails(order)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          title="View Details"
-                        >
-                          <FaEye className="h-5 w-5" />
-                        </button>
-                        {['Pending', 'Confirmed'].includes(order.status) && (
-                          <button
-                            onClick={() => handleCancelOrder(order.orderId)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Cancel Order"
-                          >
-                            <FaTimesCircle className="h-5 w-5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+    <div className="min-h-screen bg-gradient-to-br from-[#f8f5e4] to-[#f5e9d4] font-serif p-6">
+      {/* Header */}
+      <div className="max-w-7xl mx-auto mb-6 flex justify-between items-center text-[#7c5e3c]">
+        <div>📚 {currentDateTime}</div>
+        <div>👤 {auth?.user?.email || 'Guest'}</div>
       </div>
 
-      {isModalOpen && selectedOrder && (
-        <OrderDetailsModal order={selectedOrder} onClose={() => setIsModalOpen(false)} />
+      <h1 className="text-3xl font-bold text-[#7c5e3c] max-w-7xl mx-auto mb-8">Order History</h1>
+
+      {orders.length === 0 ? (
+        <div className="max-w-7xl mx-auto bg-[#fff8f0] rounded-2xl shadow p-8 border border-[#e5ccb5] text-center text-[#a9895a]">
+          <p className="mb-4">You have no orders yet.</p>
+          <Link
+            to="/books"
+            className="inline-block px-6 py-2 rounded-full bg-[#a9895a] text-white hover:bg-[#7c5e3c] transition"
+          >
+            Browse Books
+          </Link>
+        </div>
+      ) : (
+        <div className="max-w-7xl mx-auto bg-[#fff8f0] rounded-2xl shadow overflow-x-auto border border-[#e5ccb5]">
+          <table className="min-w-full divide-y divide-[#ede6d6]">
+            <thead className="bg-[#f5e9d4] text-[#a9895a]">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase">Order #</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase">Items</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase">Total</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase">Confirmation</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-[#fff8f0] divide-y divide-[#ede6d6] text-[#7c5e3c]">
+              {orders.map((order) => (
+                <tr key={order.orderId} className="hover:bg-[#f5e9d4] transition">
+                  <td className="px-6 py-4 whitespace-nowrap">{order.claimCode}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{new Date(order.createdAt).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{order.items.length} items</td>
+                  <td className="px-6 py-4 whitespace-nowrap">₹{order.finalTotal.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={getStatusBadgeClass(order.status)}>{order.status}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap flex items-center gap-1 text-sm">
+                    <FaClock />
+                    Sent to {auth?.user?.email}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm flex items-center gap-3">
+                    <Link
+                      to={`/order/${order.orderId}`}
+                      className="hover:text-[#a9895a]"
+                      title="View Details"
+                    >
+                      <FaEye />
+                    </Link>
+                    {order.status.toLowerCase() === 'pending' && (
+                      <button
+                        onClick={() => handleCancelOrder(order.orderId)}
+                        className="hover:text-[#c97b63]"
+                        title="Cancel Order"
+                      >
+                        <FaTimesCircle />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
