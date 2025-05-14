@@ -50,13 +50,13 @@ cover: book.coverImageUrl || '/placeholder-70x100.png',
         setStats((prevStats) =>
           prevStats.map((stat) => {
             if (stat.title === 'Members') {
-              return { ...stat, value: '1823', trend: '+7% from last month' };
+              return { ...stat, value: '13', trend: '+7% from last month' };
             }
             if (stat.title === 'Orders') {
-              return { ...stat, value: '432', trend: '+23% from last month' };
+              return { ...stat, value: '7', trend: '+23% from last month' };
             }
             if (stat.title === 'Revenue') {
-              return { ...stat, value: '$12,450', trend: '+18% from last month' };
+              return { ...stat, value: '$10,345', trend: '+18% from last month' };
             }
             return stat;
           })

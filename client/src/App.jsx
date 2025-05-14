@@ -67,7 +67,7 @@ function App() {
               <AnnouncementProvider>
                 
                 {/* Toast notifications */}
-                <Toaster position="top-right" />
+                <Toaster position="top-center" richColors />
 
                 {/* App Routes */}
                 <Routes>
