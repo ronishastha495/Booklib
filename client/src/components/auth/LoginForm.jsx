@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'sonner';
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -30,6 +31,13 @@ const LoginForm = () => {
 
     try {
       const response = await login(formData.email, formData.password);
+
+      // Show success toast notification
+      toast.success('Successfully signed in!', {
+        description: 'Welcome back!',
+        duration: 3000,
+       
+      });
 
       // Clear guest cart data
       localStorage.removeItem('bookshopCart_guest');
@@ -138,7 +146,7 @@ const LoginForm = () => {
         </form>
 
         <p className="mt-6 text-center text-[#7c5e3c] text-sm">
-          Don&apos;t have an account?{' '}
+          Don't have an account?{' '}
           <Link to="/register" className="text-[#a9895a] hover:underline font-semibold">
             Register
           </Link>

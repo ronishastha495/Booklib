@@ -226,7 +226,7 @@ const BookList = () => {
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     {/* Brand name on the far left */}
                     <Link to="/" className="text-3xl font-serif font-bold text-stone-800">
-                        BookHeaven
+                        Booklib
                     </Link>
 
                     {/* Navigation & user controls */}

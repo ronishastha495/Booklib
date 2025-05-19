@@ -45,8 +45,7 @@ public class BookRequestDTO
 
     public bool IsAvailable { get; set; } = true;
     public bool OnSale { get; set; } = false;
-    public decimal? DiscountPrice { get; set; }
-    public DateTime? DiscountEndDate { get; set; }
+    public decimal? DiscountPrice { get; set; }    public DateTime? DiscountEndDate { get; set; }
     public bool IsBestseller { get; set; } = false;
     public bool IsAwardWinner { get; set; } = false;
     public bool IsComingSoon { get; set; } = false;
