@@ -7,14 +7,21 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json;
 
+// It sets up default configurations like logging, dependency injection, and web server settings.
+// create a web builder app
 var builder = WebApplication.CreateBuilder(args);
 
+
 // Add services to the container.
+// registers the MVC services needed for handling HTTP requests
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 });
+
+// Needed for API documentation
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen();
 
 // CORS
@@ -34,6 +41,7 @@ builder.Services.AddDbContext<AppDBContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add EmailService to the dependency injection container
+// AddScoped() means a new instance is created for each HTTP request.
 builder.Services.AddScoped<EmailService>();
 // Add JWT service
 builder.Services.AddScoped<JwtService>();
