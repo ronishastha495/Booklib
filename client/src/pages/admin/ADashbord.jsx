@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BarChart2, Bell, BookOpen, DollarSign, FileText, Package, Plus, ShoppingCart, Tag, UserPlus, Users } from 'lucide-react';
 import QuickActionButton from '../../components/adminsidebar/QuickActionButton';
-import BookService from '../../services/bookService';
+import BookService from '../../services/bookservice';
 
 const Dashboard = () => {
   const [stats, setStats] = useState([
