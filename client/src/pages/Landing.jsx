@@ -215,7 +215,7 @@ const Landing = () => {
             <nav className="bg-[#f5f0dc] border-b border-stone-400 shadow-inner fixed top-0 w-full z-50">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <Link to="/" className="text-3xl font-serif font-bold text-[#a9895a] hover:text-[#c97b63] transition">
-                        BookHeaven
+                        BookLib
                     </Link>
                     <div className="flex items-center space-x-6">
                         {auth?.token ? (
@@ -264,7 +264,7 @@ const Landing = () => {
             {/* Hero Section */}
             <div className="bg-[#ffe5ec] text-center py-10 px-4 border-b border-[#f3e8d8]">
                 <h2 className="text-4xl font-bold text-[#c97b63] mb-2 font-serif tracking-tight drop-shadow-sm">
-                    BookHeaven: Where Great Books Await You
+                    BookLib: Where Great Books Await You
                 </h2>
                 <p className="text-[#a9895a] max-w-2xl mx-auto text-lg">
                     Discover your next favorite read from trending BookTok picks, cozy classics, and more!

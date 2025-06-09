@@ -110,7 +110,7 @@ const DiscountManager = () => {
         setEditingId(null);
       } else {
         await createDiscount(discountData);
-        toast.success('Discount created successfully!');
+
       }
       setForm({
         bookId: '',

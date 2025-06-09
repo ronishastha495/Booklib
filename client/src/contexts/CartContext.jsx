@@ -110,8 +110,6 @@ export const CartProvider = ({ children }) => {
 
             return [...prevItems, newItem];
         });
-
-        toast.success('Added to cart');
     };
 
     const updateQuantity = (bookId, newQuantity) => {

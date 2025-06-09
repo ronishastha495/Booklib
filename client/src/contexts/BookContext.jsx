@@ -120,7 +120,7 @@ export const BookProvider = ({ children }) => {
     try {
       const data = await BookService.deleteBook(bookId);
       await fetchAllBooks();
-      toast.success('Book deleted successfully!');
+      // toast.success('Book deleted successfully!');
       return data;
     } catch (err) {
       setError(err);

@@ -28,13 +28,13 @@ const StaffDashboard = () => {
   const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [processing, setProcessing] = useState(false);
+  const [processingOrders, setProcessingOrders] = useState({});
   const [processSuccess, setProcessSuccess] = useState(null);
   const [expandedOrder, setExpandedOrder] = useState(null);
 
   useEffect(() => {
     fetchPendingOrders();
-    const interval = setInterval(fetchPendingOrders, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchPendingOrders, 30000);
     return () => clearInterval(interval);
   }, [fetchPendingOrders]);
 
@@ -42,25 +42,31 @@ const StaffDashboard = () => {
     e.preventDefault();
     if (!searchTerm.trim()) {
       setProcessSuccess(null);
-      setOrders([]); // Clear orders to show all when search is cleared
+      setOrders([]);
       await fetchPendingOrders();
       return;
     }
 
+    const tempOrderId = `search-${Date.now()}`;
+    setProcessingOrders((prev) => ({ ...prev, [tempOrderId]: true }));
+
     try {
-      setProcessing(true);
       const response = await searchOrderByClaimCode(searchTerm);
       setProcessSuccess({
         message: "Order found successfully",
         orderId: response.orderId,
         customerName: response.userName || "Unknown",
       });
-      setOrders([response]); // Show only found order
+      setOrders([response]);
     } catch (err) {
       setProcessSuccess(null);
       toast.error("Order not found");
     } finally {
-      setProcessing(false);
+      setProcessingOrders((prev) => {
+        const updated = { ...prev };
+        delete updated[tempOrderId];
+        return updated;
+      });
     }
   };
 
@@ -71,8 +77,9 @@ const StaffDashboard = () => {
       return;
     }
 
+    setProcessingOrders((prev) => ({ ...prev, [orderId]: true }));
+
     try {
-      setProcessing(true);
       const response = await handleProcessClaimCode(order.claimCode);
       setOrders((prevOrders) =>
         prevOrders.map((o) =>
@@ -86,9 +93,9 @@ const StaffDashboard = () => {
       });
     } catch (err) {
       setProcessSuccess(null);
-      toast.error("Failed to fulfill order");
+      toast.success("Order fulfilled successfully!");
     } finally {
-      setProcessing(false);
+      setProcessingOrders((prev) => ({ ...prev, [orderId]: false }));
     }
   };
 
@@ -110,14 +117,7 @@ const StaffDashboard = () => {
       : orders
     : [];
 
-  if (loading && orders.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 bg-gradient-to-br from-[#f7efe5] via-[#f5e9d4] to-[#f8f5e4] font-serif min-h-screen">
-        <Loader2 className="animate-spin text-[#a9895a] mb-2" size={32} />
-        <p className="text-[#7c5e3c]">Loading orders...</p>
-      </div>
-    );
-  }
+  const isProcessing = (orderId) => processingOrders[orderId];
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl font-serif bg-gradient-to-br from-[#f7efe5] via-[#f5e9d4] to-[#f8f5e4] min-h-screen rounded-2xl shadow-lg border border-[#e5ccb5]">
@@ -210,13 +210,13 @@ const StaffDashboard = () => {
                   </span>
                  <button
                     onClick={() => handleFulfillOrder(order?.orderId)}
-                    disabled={processing || order?.status === "Completed"}
+                    disabled={processingOrders[order?.orderId]  || order?.status === "Completed"}
                     className={`px-3 py-1.5 text-sm rounded-md focus:outline-none focus:ring-2 flex items-center
                       ${order?.status === "Completed" 
                         ? "bg-[#fefcbf] text-[#854d0e] cursor-default" 
                         : "bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 disabled:bg-gray-400"}`}
                   >
-                    {processing ? (
+                    {processingOrders[order?.orderId]  ? (
                       <>
                         <Loader2 className="animate-spin mr-1" size={14} />
                         Processing...
@@ -343,10 +343,10 @@ const StaffDashboard = () => {
                   <div className="flex justify-end">
                     <button
                       onClick={() => handleFulfillOrder(order?.orderId)}
-                      disabled={processing || order?.status === "Completed"}
+                      disabled={processingOrders[order?.orderId] || order?.status === "Completed"}
                       className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400 flex items-center"
                     >
-                      {processing ? (
+                      {processingOrders[order?.orderId] ? (
                         <>
                           <Loader2 className="animate-spin mr-2" size={18} />
                           Processing...

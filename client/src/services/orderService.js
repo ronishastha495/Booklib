@@ -186,7 +186,7 @@ setupOrderUpdates: (callback) => {
     const ws = new WebSocket('ws://localhost:5259/ws/orders');
     
     ws.onopen = () => {
-        console.log('Connected to orders WebSocket');
+        // console.log('Connected to orders WebSocket');
     };
     
     ws.onerror = (error) => {
@@ -216,7 +216,7 @@ setupNotificationUpdates: (callback) => {
   const ws = new WebSocket('ws://localhost:5259/ws/notifications');
   
   ws.onopen = () => {
-    console.log('Notifications WebSocket Connected');
+    // console.log('Notifications WebSocket Connected');
     ws.send(JSON.stringify({ type: 'auth', token }));
   };
 

@@ -17,7 +17,7 @@ const ProtectedRoute = ({ adminOnly = false, staffOnly = false }) => {
 
   // If not authenticated, redirect to login
   if (!auth?.token) {
-    toast.error("Please login to access this feature");
+    // toast.error("Please login to access this feature");
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
@@ -25,7 +25,7 @@ const ProtectedRoute = ({ adminOnly = false, staffOnly = false }) => {
 
   // Admin-only access check
   if (adminOnly && userRole !== 'admin') {
-    toast.error("Admin access required");
+    // toast.error("Admin access required");
     return <Navigate to="/dashboard" replace />;
   }
 

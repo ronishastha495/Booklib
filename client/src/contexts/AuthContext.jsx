@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
       
       // Force navigation to home page
       navigate('/', { replace: true });
-      toast.success('Successfully logged out');
+
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Error during logout');
